@@ -44,6 +44,14 @@ func (csc ContentSourceConfig) InputFile() string {
 	}
 	return ""
 }
+func (csc ContentSourceConfig) Get(key string) string {
+	if val, ok := csc[key]; ok {
+		if sval, ok := val.(string); ok {
+			return sval
+		}
+	}
+	return ""
+}
 
 type TemplateData struct {
 	Site SiteConfig
