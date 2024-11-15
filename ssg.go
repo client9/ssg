@@ -92,7 +92,7 @@ func executeOne(sconfig SiteConfig,
 	}
 
 	// open file
-	f, err := os.OpenFile(fullpath, os.O_CREATE|os.O_WRONLY, 0666)
+	f, err := os.OpenFile(fullpath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0666)
 	if err != nil {
 		return err
 	}
