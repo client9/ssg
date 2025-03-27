@@ -1,8 +1,6 @@
 package ssg
 
-import (
-	"strings"
-)
+import "bytes"
 
 // Splits a document into a head and body based on various markers.
 // Other implimentations parse the head and/or body.
@@ -15,33 +13,33 @@ import (
 
 type HeadType struct {
 	Name        string
-	Prefix      string
-	Suffix      string
+	Prefix      []byte
+	Suffix      []byte
 	KeepMarkers bool
 }
 
 var HeadYaml = HeadType{
 	Name:        "yaml",
-	Prefix:      "---\n",
-	Suffix:      "\n---\n",
+	Prefix:      []byte("---\n"),
+	Suffix:      []byte("\n---\n"),
 	KeepMarkers: false,
 }
 var HeadJson = HeadType{
 	Name:        "json",
-	Prefix:      "{\n",
-	Suffix:      "\n}\n",
+	Prefix:      []byte("{\n"),
+	Suffix:      []byte("\n}\n"),
 	KeepMarkers: true,
 }
 var HeadToml = HeadType{
 	Name:        "toml",
-	Prefix:      "+++\n",
-	Suffix:      "\n+++\n",
+	Prefix:      []byte("+++\n"),
+	Suffix:      []byte("\n+++\n"),
 	KeepMarkers: false,
 }
 var HeadEmail = HeadType{
 	Name:        "email",
-	Prefix:      "",
-	Suffix:      "\n\n\n",
+	Prefix:      []byte(""),
+	Suffix:      []byte("\n\n\n"),
 	KeepMarkers: false,
 }
 
@@ -53,11 +51,11 @@ func (cs *ContentSplitter) Register(m HeadType) {
 	cs.formats = append(cs.formats, m)
 }
 
-func (cs *ContentSplitter) Split(s string) (string, string, string) {
+func (cs *ContentSplitter) Split(s []byte) (string, []byte, []byte) {
 	for _, head := range cs.formats {
-		if strings.HasPrefix(s, head.Prefix) {
+		if bytes.HasPrefix(s, head.Prefix) {
 			plen := len(head.Prefix)
-			if idx := strings.Index(s[plen:], head.Suffix); idx != -1 {
+			if idx := bytes.Index(s[plen:], head.Suffix); idx != -1 {
 				if head.KeepMarkers {
 					pt := plen + idx + len(head.Suffix)
 					return head.Name, s[:pt], s[pt:]
@@ -66,5 +64,5 @@ func (cs *ContentSplitter) Split(s string) (string, string, string) {
 			}
 		}
 	}
-	return "", "", s
+	return "", nil, s
 }

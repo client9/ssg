@@ -66,13 +66,13 @@ Multi
 `)
 	cs := ssg.ContentSplitter{}
 	cs.Register(ssg.HeadYaml)
-	htype, head, body := cs.Split(doc)
+	htype, head, body := cs.Split([]byte(doc))
 	if htype != "yaml" {
 		t.Errorf("Expected YAML sample: got %q", htype)
 	}
 
 	page := make(ssg.ContentSourceConfig)
-	if err := yaml.Unmarshal([]byte(head), &page); err != nil {
+	if err := yaml.Unmarshal(head, &page); err != nil {
 		t.Errorf("Unable to un-yaml: %v", err)
 	}
 	page["Content"] = body
