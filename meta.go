@@ -8,7 +8,7 @@ import "bytes"
 // BYOP - Bring Your Own Parser.
 
 // if you never use TOML, why spend any cycles checking for it, and why
-// has a dependency?
+// have it as a dependency?
 //
 
 type HeadType struct {
