@@ -103,7 +103,8 @@ func executeOne(sconfig SiteConfig,
 	}
 	// create template input data
 	// TODO: swap "s" with a bigger input data struct
-	if err := tpl.ExecuteTemplate(f, s.TemplateName(), data); err != nil {
+	err = tpl.ExecuteTemplate(f, s.TemplateName(), data)
+	if err != nil {
 		return err
 	}
 	return nil
