@@ -33,7 +33,7 @@ func templateMap(root string, fmap template.FuncMap) (TemplateRouter, error) {
 	out := make(TemplateRouter)
 
 	if fmap == nil {
-		fmap= template.FuncMap{}
+		fmap = template.FuncMap{}
 	}
 
 	//
@@ -61,6 +61,7 @@ func templateMap(root string, fmap template.FuncMap) (TemplateRouter, error) {
 	}
 	return out, nil
 }
+
 // in the layout directory
 //
 //	get a list of all paths
@@ -69,7 +70,7 @@ func getDirectories(root string) ([]string, error) {
 	out := []string{}
 	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
-			return fmt.Errorf("WalkDir error1: %v", err)
+			return fmt.Errorf("WalkDir error at %q: %v", path, err)
 		}
 		if d.IsDir() {
 			rel, err := filepath.Rel(root, path)
@@ -103,4 +104,3 @@ func (t TemplateRouter) ExecuteTemplate(wr io.Writer, name string, data any) err
 	}
 	return base.ExecuteTemplate(wr, file, data)
 }
-
