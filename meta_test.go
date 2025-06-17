@@ -16,7 +16,7 @@ content
 	if head != nil {
 		t.Errorf("Expected empty head, got %q", head)
 	}
-	if bytes.Compare(body, bin) != 0 {
+	if !bytes.Equal(body, bin) {
 		t.Errorf("Expected body of %q, got %q", in, body)
 	}
 }
@@ -31,10 +31,10 @@ content
 	head, body := Splitter(HeadJson, bin)
 
 	want := []byte("{\n\"foo\": \"bar\"\n}\n")
-	if bytes.Compare(want, head) != 0 {
+	if !bytes.Equal(want, head) {
 		t.Errorf("Expected %q,  got %q", want, head)
 	}
-	if bytes.Compare(body, []byte("content")) != 0 {
+	if !bytes.Equal(body, []byte("content")) {
 		t.Errorf("Expected content, got %q", body)
 	}
 
@@ -56,10 +56,10 @@ content
 	bin := []byte(in)
 	head, body := Splitter(HeadYaml, bin)
 
-	if bytes.Compare(head, []byte("foo: bar")) != 0 {
+	if !bytes.Equal(head, []byte("foo: bar")) {
 		t.Errorf("Expected foo:bar, got %q", head)
 	}
-	if bytes.Compare(body, []byte("content")) != 0 {
+	if !bytes.Equal(body, []byte("content")) {
 		t.Errorf("Expected content, got %q", body)
 	}
 }

@@ -36,7 +36,7 @@ func Main2(config SiteConfig, pages *[]ContentSourceConfig) error {
 
 	// load in content
 	if err := LoadContent(config, pages); err != nil {
-		return fmt.Errorf("Load content failed: %w", err)
+		return fmt.Errorf("load content failed: %w", err)
 	}
 
 	// TBD: do global site stuff

@@ -15,7 +15,7 @@ func WriteOutput(outdir string, file string, data []byte) error {
 	dir := filepath.Dir(fullpath)
 	log.Printf("full = %s, dir=%s", fullpath, dir)
 	if err := os.MkdirAll(dir, 0750); err != nil {
-		return fmt.Errorf("Output: unable to write dir %s: %v", dir, err)
+		return fmt.Errorf("output: unable to write dir %s: %v", dir, err)
 
 	}
 

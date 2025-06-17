@@ -100,7 +100,7 @@ func (t TemplateRouter) ExecuteTemplate(wr io.Writer, name string, data any) err
 		for k, v := range t {
 			log.Printf("GOT dir=%s --> template %s", k, v.Name())
 		}
-		return fmt.Errorf("Could not file with dir=%q file=%q", dir, file)
+		return fmt.Errorf("could not file with dir=%q file=%q", dir, file)
 	}
 	return base.ExecuteTemplate(wr, file, data)
 }
