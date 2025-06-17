@@ -1,4 +1,4 @@
-module github.com/npg70/ssg
+module github.com/client9/ssg
 
 go 1.23.0
 
