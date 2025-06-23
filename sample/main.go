@@ -23,7 +23,11 @@ func elink(href string, body string) string {
 }
 
 // here's an example of a post processor
-func HTMLPretty(wr io.Writer, src []byte, data any) error {
+func HTMLPretty(wr io.Writer, source io.Reader, data any) error {
+	src, err := io.ReadAll(source)
+	if err != nil {
+		return err
+	}
 	wr.Write(gohtml.FormatBytes(src))
 	return nil
 }
@@ -42,14 +46,15 @@ func main() {
 		log.Fatalf("Page Template failed: %v", err)
 	}
 
-
 	// config and pipeline
 	conf := ssg.SiteConfig{
+		OutputDir: "public",
 		Pipeline: []ssg.Renderer{
 			ssg.NewTemplateMacro(fns),
 			ssg.HTMLRender,
 			pageTemplate,
 			HTMLPretty,
+			ssg.WriteOutput("public"),
 		},
 	}
 
@@ -58,7 +63,6 @@ func main() {
 	//  from database or something else
 
 	pages := []ssg.ContentSourceConfig{}
-
 
 	// do it
 	err = ssg.Main2(conf, &pages)

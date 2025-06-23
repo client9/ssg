@@ -48,14 +48,15 @@ func Main2(config SiteConfig, pages *[]ContentSourceConfig) error {
 		// initial source is in []byte
 		source := p["Content"].([]byte)
 
-		source, err := MultiRender(config.Pipeline, source, p)
-		if err != nil {
+		if err := MultiRender(config.Pipeline, source, p); err != nil {
 			return err
 		}
 
-		if err = WriteOutput(config.OutputDir, p.OutputFile(), source); err != nil {
-			return err
-		}
+		/*
+			if err = WriteOutput(config.OutputDir, p.OutputFile(), source); err != nil {
+				return err
+			}
+		*/
 	}
 
 	return nil

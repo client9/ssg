@@ -18,8 +18,13 @@ func NewPageRender(tdir string, fns template.FuncMap) (Renderer, error) {
 		return nil, err
 	}
 
-	return func(wr io.Writer, src []byte, data any) error {
+	return func(wr io.Writer, source io.Reader, data any) error {
 		s := data.(ContentSourceConfig)
+
+		src, err := io.ReadAll(source)
+		if err != nil {
+			return err
+		}
 
 		// needs to be string for golang text/template
 		s["Content"] = string(src)
