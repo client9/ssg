@@ -3,7 +3,6 @@ package ssg
 import (
 	"fmt"
 	"io/fs"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -65,10 +64,10 @@ func Main2(config SiteConfig, pages *[]ContentSourceConfig) error {
 func LoadContent(config SiteConfig, out *[]ContentSourceConfig) error {
 
 	contentDir := config.ContentDir
-	log.Printf("In content dir: %s", contentDir)
+	//log.Printf("In content dir: %s", contentDir)
 
 	err := filepath.WalkDir(contentDir, func(path string, d fs.DirEntry, err error) error {
-		log.Printf("LoadContent: got %s", path)
+		//log.Printf("LoadContent: got %s", path)
 		// not sure how this works
 		if err != nil {
 			return fmt.Errorf("LoadContent walkdir error: %v", err)
@@ -87,7 +86,7 @@ func LoadContent(config SiteConfig, out *[]ContentSourceConfig) error {
 			return nil
 		}
 
-		log.Printf("LoadContent: reading %s", path)
+		//log.Printf("LoadContent: reading %s", path)
 		raw, err := os.ReadFile(path)
 		if err != nil {
 			return fmt.Errorf("LoadContent: reading page file %s failed: %w", path, err)
@@ -100,7 +99,7 @@ func LoadContent(config SiteConfig, out *[]ContentSourceConfig) error {
 
 		page, err := config.Metaparser(head)
 		if err != nil {
-			log.Fatalf("Unable to parse front matter: %v", err)
+			return fmt.Errorf("unable to parse front matter: %v", err)
 		}
 
 		if _, ok := page["TemplateName"]; !ok {
@@ -123,7 +122,7 @@ func LoadContent(config SiteConfig, out *[]ContentSourceConfig) error {
 			} else {
 				s = filepath.Join(s, config.IndexDest)
 			}
-			log.Printf("Setting outfile to %s", s)
+			//log.Printf("Setting outfile to %s", s)
 			page["OutputFile"] = s
 		}
 

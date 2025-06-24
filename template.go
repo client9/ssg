@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"log"
 	"path/filepath"
 	"strings"
 	"text/template"
@@ -46,16 +45,13 @@ func templateMap(root string, fmap template.FuncMap) (TemplateRouter, error) {
 	if err != nil {
 		return nil, err
 	}
-	log.Printf("OUT = %d", len(dirs))
 	for _, d := range dirs {
 		t := template.New(d).Funcs(fmap)
 
-		log.Printf("IN DIR: %s", d)
 		parts := strings.Split(d, string(filepath.Separator))
 		for i := 0; i <= len(parts); i++ {
 			current := filepath.Join(parts[:i]...)
 			templateGlob := filepath.Join(root, current, "*.html")
-			log.Printf("Reading current=%q  templates: %q", current, templateGlob)
 			if _, err := t.ParseGlob(templateGlob); err != nil {
 				return out, err
 				// typically empty directory
@@ -71,18 +67,16 @@ func templateMap(root string, fmap template.FuncMap) (TemplateRouter, error) {
 //
 //	get a list of all paths
 func getDirectories(root string) ([]string, error) {
-	log.Printf("In get dir: %s", root)
 	out := []string{}
 	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
-			return fmt.Errorf("WalkDir error at %q: %v", path, err)
+			return fmt.Errorf("walkdir error at %q: %v", path, err)
 		}
 		if d.IsDir() {
 			rel, err := filepath.Rel(root, path)
 			if err != nil {
 				panic("WTF")
 			}
-			log.Printf("PATH = %s, RELPATH= %s", path, rel)
 			out = append(out, rel)
 		}
 		return nil
@@ -99,12 +93,8 @@ func (t TemplateRouter) ExecuteTemplate(wr io.Writer, name string, data any) err
 	if dir == "" {
 		dir = "."
 	}
-	//log.Printf("GOT TEMPLATE %q  Dir=%s file=%s", name, dir, file)
 	base, ok := t[dir]
 	if !ok {
-		for k, v := range t {
-			log.Printf("GOT dir=%s --> template %s", k, v.Name())
-		}
 		return fmt.Errorf("could not file with dir=%q file=%q", dir, file)
 	}
 	return base.ExecuteTemplate(wr, file, data)
