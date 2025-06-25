@@ -67,3 +67,17 @@ func Splitter(head HeadType, s []byte) ([]byte, []byte) {
 	}
 	return nil, nil
 }
+
+func Joiner(head HeadType, meta []byte, body []byte) []byte {
+	out := []byte{}
+	if !head.KeepMarkers {
+		out = append(out, head.Prefix...)
+	}
+	out = append(out, meta...)
+
+	if !head.KeepMarkers {
+		out = append(out, head.Suffix...)
+	}
+	out = append(out, body...)
+	return out
+}
