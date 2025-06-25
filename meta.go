@@ -77,6 +77,8 @@ func Joiner(head HeadType, meta []byte, body []byte) []byte {
 
 	if !head.KeepMarkers {
 		out = append(out, head.Suffix...)
+	} else {
+		out = append(out, byte('\n'))
 	}
 	out = append(out, body...)
 	return out
