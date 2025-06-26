@@ -1,0 +1,73 @@
+package ssg
+
+import (
+	"testing"
+)
+
+func TestEmailMeta(t *testing.T) {
+
+	msg := []byte(`
+first: 1
+# comment
+
+second: 2
+`)
+	out, err := EmailMeta(msg)
+	if err != nil {
+		t.Fatalf("Error: %v", err)
+	}
+	if len(out) != 2 {
+		t.Fatalf("Expected 2 keys, got %d %v", len(out), out)
+	}
+}
+func TestEmailMetaContinued(t *testing.T) {
+
+	msg := []byte(`
+first: This is 
+ a line
+second: 2
+`)
+	out, err := EmailMeta(msg)
+	if err != nil {
+		t.Fatalf("Error: %v", err)
+	}
+	if len(out) != 2 {
+		t.Fatalf("Expected 2 keys, got %d %v", len(out), out)
+	}
+	val := out["first"].(string)
+	want := "This is a line"
+	if val != want {
+		t.Errorf("Expected %q, got %q", want, val)
+	}
+}
+
+func TestEmailWrite1(t *testing.T) {
+
+	data := make(map[string]any)
+	data["afloat"] = 1.125
+	data["aint"] = 124
+	data["abool"] = true
+	data["astring"] = "hello world"
+	data["tag"] = []string{"apple", "banana"}
+
+	want := `abool: true
+afloat: 1.125
+aint: 124
+astring: hello world
+tag: apple
+tag: banana
+`
+
+	out, err := EmailMarshal(data)
+	if err != nil {
+		t.Fatalf("got error: %v", err)
+	}
+
+	s := string(out)
+	if s != want {
+		t.Errorf("Got\n %s", s)
+	}
+}
+func TestEmailWrite2(t *testing.T) {
+
+}
