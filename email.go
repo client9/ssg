@@ -10,6 +10,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type KVTransformer func(kv map[string]any, k, v string) error
@@ -150,6 +151,14 @@ func writeEmailMeta(out []byte, prefix string, data map[string]any) ([]byte, err
 		v := data[k]
 
 		switch val := v.(type) {
+		case *time.Time:
+			out = appendKey(out, k)
+			out = append(out, []byte(val.String())...)
+			out = append(out, byte('\n'))
+		case time.Time:
+			out = appendKey(out, k)
+			out = append(out, []byte(val.String())...)
+			out = append(out, byte('\n'))
 		case map[string]any:
 			out, err := writeEmailMeta(out, k+"-", val)
 			if err != nil {
