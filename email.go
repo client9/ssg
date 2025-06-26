@@ -151,6 +151,15 @@ func writeEmailMeta(out []byte, prefix string, data map[string]any) ([]byte, err
 		v := data[k]
 
 		switch val := v.(type) {
+		case []any:
+			// yaml does this
+			tmp := make([]string, len(val))
+			for i, v := range val {
+				tmp[i] = fmt.Sprintf("%v", v)
+			}
+			out = appendKey(out, k)
+			out = append(out, []byte(strings.Join(tmp, ", "))...)
+			out = append(out, byte('\n'))
 		case *time.Time:
 			out = appendKey(out, k)
 			out = append(out, []byte(val.String())...)

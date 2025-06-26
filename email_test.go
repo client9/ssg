@@ -53,10 +53,12 @@ func TestEmailWrite1(t *testing.T) {
 	data["astring"] = "hello world"
 	data["tag"] = []string{"apple", "banana"}
 	data["atime"] = time.Date(2025,1,2,1,2,3,0,time.UTC)
+	data["aslice"]= []any{"str", 1}
 	want := `abool: true
 afloat: 1.125
 aint: 124
 aint64: 125
+aslice: str, 1
 astring: hello world
 atime: 2025-01-02 01:02:03 +0000 UTC
 auint64: 999
