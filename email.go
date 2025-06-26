@@ -181,12 +181,20 @@ func writeEmailMeta(out []byte, prefix string, data map[string]any) ([]byte, err
 			out = appendKey(out, k)
 			out = strconv.AppendInt(out, int64(val), 10)
 			out = append(out, byte('\n'))
+		case int64:
+			out = appendKey(out, k)
+			out = strconv.AppendInt(out, val, 10)
+			out = append(out, byte('\n'))
 		case uint:
 			out = appendKey(out, k)
 			out = strconv.AppendUint(out, uint64(val), 10)
 			out = append(out, byte('\n'))
+		case uint64:
+			out = appendKey(out, k)
+			out = strconv.AppendUint(out, val, 10)
+			out = append(out, byte('\n'))
 		default:
-			return nil, fmt.Errorf("unknown type %t with value %v", v, v)
+			return nil, fmt.Errorf("unknown type %T with value %v", v, v)
 		}
 	}
 	return out, nil

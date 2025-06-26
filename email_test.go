@@ -46,6 +46,8 @@ func TestEmailWrite1(t *testing.T) {
 	data := make(map[string]any)
 	data["afloat"] = 1.125
 	data["aint"] = 124
+	data["aint64"] = int64(125)
+	data["auint64"] = uint64(999)
 	data["abool"] = true
 	data["astring"] = "hello world"
 	data["tag"] = []string{"apple", "banana"}
@@ -53,7 +55,9 @@ func TestEmailWrite1(t *testing.T) {
 	want := `abool: true
 afloat: 1.125
 aint: 124
+aint64: 125
 astring: hello world
+auint64: 999
 tag: apple
 tag: banana
 `
