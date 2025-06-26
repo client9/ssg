@@ -3,6 +3,7 @@ package ssg
 import (
 	"bufio"
 	"bytes"
+	"encoding/csv"
 	"errors"
 	"fmt"
 	"io"
@@ -13,72 +14,88 @@ import (
 	"time"
 )
 
-type KVTransformer func(kv map[string]any, k, v string) error
+type ValueTransformer func(k string, v any) (any, error)
 
-func KVForKey(key string, next KVTransformer) KVTransformer {
-	return func(kv map[string]any, k, v string) error {
-		if k == key {
-			return next(kv, k, v)
+func AsList(key string) ValueTransformer {
+	return func(k string, v any) (any, error) {
+		if k != key {
+			return v, nil
 		}
-		return nil
+		parts, err := readCSV(v.(string))
+		if err != nil {
+			return nil, err
+		}
+		return parts, io.EOF
 	}
 }
 
-func KVOverwrite(kv map[string]any, k, v string) error {
-	kv[k] = v
-	return io.EOF
+func ApplyTransforms(k string, v any, tx []ValueTransformer) (any, error) {
+	for _, t := range tx {
+		v, err := t(k, v)
+		if errors.Is(err, io.EOF) {
+			// we handled it, done.
+			return v, nil
+		}
+		if err != nil {
+			// something didn't work
+			return nil, err
+		}
+		// didn't process it, keep going
+	}
+
+	// no change
+	return v, nil
 }
 
-func KVDupError(kv map[string]any, k, v string) error {
-	_, ok := kv[k]
-	if !ok {
-		kv[k] = v
-		return io.EOF
+func Set(kv map[string]any, k string, v any, tx []ValueTransformer) error {
+	v, err := ApplyTransforms(k, v, tx)
+	if err != nil {
+		return err
+	}
+
+	parts := strings.Split(strings.TrimSpace(k), ".")
+	base := parts[0 : len(parts)-1]
+	key := parts[len(parts)-1]
+
+	next := kv
+	for _, b := range base {
+		if _, ok := next[b]; !ok {
+			next = make(map[string]any)
+			kv[b] = next
+		}
+		tmp, ok := next[b].(map[string]any)
+		if !ok {
+			return fmt.Errorf("key %q isnt a map", k)
+		}
+		next = tmp
+	}
+	if _, ok := next[key]; !ok {
+		next[key] = v
+		return nil
 	}
 	return fmt.Errorf("duplicate key %q", k)
 }
 
-func KVStringAllList(kv map[string]any, k, v string) error {
-	val, ok := kv[k]
-	if !ok {
-		kv[k] = []string{v}
-		return io.EOF
+func replaceNewlines(s string) string {
+	return strings.ReplaceAll(s, "\n", " ")
+}
+func readCSV(row string) ([]string, error) {
+	// one row, one shot!
+	r := csv.NewReader(strings.NewReader(row))
+	return r.Read()
+}
+func writeCSV(parts []string) ([]byte, error) {
+	for i, s := range parts {
+		parts[i] = replaceNewlines(s)
 	}
-	list := val.([]string)
-	list = append(list, v)
-	kv[k] = list
-	return io.EOF
+	out := &bytes.Buffer{}
+	w := csv.NewWriter(out)
+	_ = w.Write(parts)
+	w.Flush()
+	return out.Bytes(), nil
 }
 
-func KVStringList(kv map[string]any, k, v string) error {
-	val, ok := kv[k]
-	if !ok {
-		kv[k] = []string{v}
-		return io.EOF
-	}
-	list := val.([]string)
-	list = append(list, v)
-	kv[k] = list
-	return io.EOF
-}
-
-func ApplyTx(kv map[string]any, k, v string, tx []KVTransformer) error {
-	for _, t := range tx {
-		err := t(kv, k, v)
-		if errors.Is(err, io.EOF) {
-			return nil
-		}
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func EmailMeta(src []byte, tx ...KVTransformer) (map[string]any, error) {
-	if len(tx) == 0 {
-		tx = append(tx, KVOverwrite)
-	}
+func EmailMeta(src []byte, tx ...ValueTransformer) (map[string]any, error) {
 	out := make(map[string]any)
 	scan := bufio.NewScanner(bytes.NewReader(src))
 	scan.Split(bufio.ScanLines)
@@ -89,7 +106,7 @@ func EmailMeta(src []byte, tx ...KVTransformer) (map[string]any, error) {
 		// empty line or comment line
 		if len(text) == 0 || text[0] == '#' {
 			if key != "" {
-				if err := ApplyTx(out, key, prev, tx); err != nil {
+				if err := Set(out, key, prev, tx); err != nil {
 					return nil, err
 				}
 				key = ""
@@ -107,7 +124,7 @@ func EmailMeta(src []byte, tx ...KVTransformer) (map[string]any, error) {
 		}
 		// this is a normal line.
 		if key != "" {
-			if err := ApplyTx(out, key, prev, tx); err != nil {
+			if err := Set(out, key, prev, tx); err != nil {
 				return nil, err
 			}
 		}
@@ -122,17 +139,12 @@ func EmailMeta(src []byte, tx ...KVTransformer) (map[string]any, error) {
 		return nil, err
 	}
 	if key != "" {
-		if err := ApplyTx(out, key, prev, tx); err != nil {
+		if err := Set(out, key, prev, tx); err != nil {
 			return nil, err
 		}
 	}
 	return out, nil
 }
-
-// write out data is more straightfoward.
-// The only ootion is really what to do with []string values
-//  One header per value "foo:bar1\nfoo:bar2"
-//  CSV "foo: bar1,bar2" .. might need quoting issues.
 
 func appendKey(out []byte, prefix, key string) []byte {
 	out = append(out, []byte(prefix)...)
@@ -148,19 +160,49 @@ func EmailMarshal(data map[string]any) ([]byte, error) {
 
 func writeEmailMeta(out []byte, prefix string, data map[string]any) ([]byte, error) {
 	keys := slices.Sorted(maps.Keys(data))
+	current := []string{}
+	next := []string{}
 	for _, k := range keys {
+		v := data[k]
+		switch v.(type) {
+		case map[string]any:
+			next = append(next, k)
+		default:
+			current = append(current, k)
+		}
+	}
+
+	for _, k := range current {
 		v := data[k]
 
 		switch val := v.(type) {
 		case []any:
-			// yaml does this
+			// yaml uses []any
 			tmp := make([]string, len(val))
 			for i, v := range val {
 				tmp[i] = fmt.Sprintf("%v", v)
 			}
 			out = appendKey(out, prefix, k)
-			out = append(out, []byte(strings.Join(tmp, ", "))...)
-			out = append(out, byte('\n'))
+			row, err := writeCSV(tmp)
+			if err != nil {
+				return nil, err
+			}
+			out = append(out, row...)
+		case []string:
+			out = appendKey(out, prefix, k)
+			row, err := writeCSV(val)
+			if err != nil {
+				return nil, err
+			}
+			out = append(out, row...)
+		case string:
+			out = appendKey(out, prefix, k)
+			list := []string{val}
+			row, err := writeCSV(list)
+			if err != nil {
+				return nil, err
+			}
+			out = append(out, row...)
 		case *time.Time:
 			out = appendKey(out, prefix, k)
 			out = append(out, []byte(val.String())...)
@@ -169,22 +211,6 @@ func writeEmailMeta(out []byte, prefix string, data map[string]any) ([]byte, err
 			out = appendKey(out, prefix, k)
 			out = append(out, []byte(val.String())...)
 			out = append(out, byte('\n'))
-		case map[string]any:
-			tout, err := writeEmailMeta(out, k+"-", val)
-			if err != nil {
-				return out, err
-			}
-			out = tout
-		case string:
-			out = appendKey(out, prefix, k)
-			out = append(out, []byte(val)...)
-			out = append(out, byte('\n'))
-		case []string:
-			for _, s := range val {
-				out = appendKey(out, prefix, k)
-				out = append(out, []byte(s)...)
-				out = append(out, byte('\n'))
-			}
 		case float32:
 			out = appendKey(out, prefix, k)
 			out = strconv.AppendFloat(out, float64(val), 'g', -1, 32)
@@ -217,5 +243,18 @@ func writeEmailMeta(out []byte, prefix string, data map[string]any) ([]byte, err
 			return nil, fmt.Errorf("unknown type %T with value %v", v, v)
 		}
 	}
+	if len(current) > 0 {
+		out = append(out, byte('\n'))
+	}
+
+	for _, k := range next {
+		v := data[k].(map[string]any)
+		tout, err := writeEmailMeta(out, k+".", v)
+		if err != nil {
+			return out, err
+		}
+		out = tout
+	}
+
 	return out, nil
 }

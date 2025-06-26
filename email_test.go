@@ -1,8 +1,9 @@
 package ssg
 
 import (
-	"time"
+	"strings"
 	"testing"
+	"time"
 )
 
 func TestEmailMeta(t *testing.T) {
@@ -44,9 +45,9 @@ second: 2
 
 func TestEmailWrite1(t *testing.T) {
 
-sub := map[string]any{
-	"foo": "bar",
-	"ding": "bat",
+	sub := map[string]any{
+		"foo":  "bar",
+		"ding": "bat",
 	}
 
 	data := make(map[string]any)
@@ -58,30 +59,34 @@ sub := map[string]any{
 	data["amap"] = sub
 	data["astring"] = "hello world"
 	data["tag"] = []string{"apple", "banana"}
-	data["atime"] = time.Date(2025,1,2,1,2,3,0,time.UTC)
-	data["aslice"]= []any{"str", 1}
-	want := `abool: true
+	data["atime"] = time.Date(2025, 1, 2, 1, 2, 3, 0, time.UTC)
+	data["aslice"] = []any{"str", 1}
+	data["multiline"] = "line1\nline2"
+
+	want := strings.TrimSpace(`
+abool: true
 afloat: 1.125
 aint: 124
 aint64: 125
-amap-ding: bat
-amap-foo: bar
-aslice: str, 1
+aslice: str,1
 astring: hello world
 atime: 2025-01-02 01:02:03 +0000 UTC
 auint64: 999
-tag: apple
-tag: banana
-`
+multiline: line1 line2
+tag: apple,banana
+
+amap.ding: bat
+amap.foo: bar
+`)
 
 	out, err := EmailMarshal(data)
 	if err != nil {
 		t.Fatalf("got error: %v", err)
 	}
 
-	s := string(out)
+	s := strings.TrimSpace(string(out))
 	if s != want {
-		t.Errorf("Got\n %s", s)
+		t.Errorf("Want %s\nGot %s", want, s)
 	}
 }
 func TestEmailWrite2(t *testing.T) {
