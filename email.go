@@ -134,7 +134,8 @@ func EmailMeta(src []byte, tx ...KVTransformer) (map[string]any, error) {
 //  One header per value "foo:bar1\nfoo:bar2"
 //  CSV "foo: bar1,bar2" .. might need quoting issues.
 
-func appendKey(out []byte, key string) []byte {
+func appendKey(out []byte, prefix, key string) []byte {
+	out = append(out, []byte(prefix)...)
 	out = append(out, []byte(key)...)
 	out = append(out, byte(':'), byte(' '))
 	return out
@@ -157,58 +158,59 @@ func writeEmailMeta(out []byte, prefix string, data map[string]any) ([]byte, err
 			for i, v := range val {
 				tmp[i] = fmt.Sprintf("%v", v)
 			}
-			out = appendKey(out, k)
+			out = appendKey(out, prefix, k)
 			out = append(out, []byte(strings.Join(tmp, ", "))...)
 			out = append(out, byte('\n'))
 		case *time.Time:
-			out = appendKey(out, k)
+			out = appendKey(out, prefix, k)
 			out = append(out, []byte(val.String())...)
 			out = append(out, byte('\n'))
 		case time.Time:
-			out = appendKey(out, k)
+			out = appendKey(out, prefix, k)
 			out = append(out, []byte(val.String())...)
 			out = append(out, byte('\n'))
 		case map[string]any:
-			out, err := writeEmailMeta(out, k+"-", val)
+			tout, err := writeEmailMeta(out, k+"-", val)
 			if err != nil {
 				return out, err
 			}
+			out = tout
 		case string:
-			out = appendKey(out, k)
+			out = appendKey(out, prefix, k)
 			out = append(out, []byte(val)...)
 			out = append(out, byte('\n'))
 		case []string:
 			for _, s := range val {
-				out = appendKey(out, k)
+				out = appendKey(out, prefix, k)
 				out = append(out, []byte(s)...)
 				out = append(out, byte('\n'))
 			}
 		case float32:
-			out = appendKey(out, k)
+			out = appendKey(out, prefix, k)
 			out = strconv.AppendFloat(out, float64(val), 'g', -1, 32)
 			out = append(out, byte('\n'))
 		case float64:
-			out = appendKey(out, k)
+			out = appendKey(out, prefix, k)
 			out = strconv.AppendFloat(out, val, 'g', -1, 64)
 			out = append(out, byte('\n'))
 		case bool:
-			out = appendKey(out, k)
+			out = appendKey(out, prefix, k)
 			out = strconv.AppendBool(out, val)
 			out = append(out, byte('\n'))
 		case int:
-			out = appendKey(out, k)
+			out = appendKey(out, prefix, k)
 			out = strconv.AppendInt(out, int64(val), 10)
 			out = append(out, byte('\n'))
 		case int64:
-			out = appendKey(out, k)
+			out = appendKey(out, prefix, k)
 			out = strconv.AppendInt(out, val, 10)
 			out = append(out, byte('\n'))
 		case uint:
-			out = appendKey(out, k)
+			out = appendKey(out, prefix, k)
 			out = strconv.AppendUint(out, uint64(val), 10)
 			out = append(out, byte('\n'))
 		case uint64:
-			out = appendKey(out, k)
+			out = appendKey(out, prefix, k)
 			out = strconv.AppendUint(out, val, 10)
 			out = append(out, byte('\n'))
 		default:

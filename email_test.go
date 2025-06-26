@@ -44,12 +44,18 @@ second: 2
 
 func TestEmailWrite1(t *testing.T) {
 
+sub := map[string]any{
+	"foo": "bar",
+	"ding": "bat",
+	}
+
 	data := make(map[string]any)
 	data["afloat"] = 1.125
 	data["aint"] = 124
 	data["aint64"] = int64(125)
 	data["auint64"] = uint64(999)
 	data["abool"] = true
+	data["amap"] = sub
 	data["astring"] = "hello world"
 	data["tag"] = []string{"apple", "banana"}
 	data["atime"] = time.Date(2025,1,2,1,2,3,0,time.UTC)
@@ -58,6 +64,8 @@ func TestEmailWrite1(t *testing.T) {
 afloat: 1.125
 aint: 124
 aint64: 125
+amap-ding: bat
+amap-foo: bar
 aslice: str, 1
 astring: hello world
 atime: 2025-01-02 01:02:03 +0000 UTC
