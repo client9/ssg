@@ -3,6 +3,7 @@ package ssg
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 )
 
 // Splits Input into metadata and the main content/body
@@ -11,12 +12,21 @@ type ContentSplitter func(s []byte) ([]byte, []byte)
 // MetaParser parses the front matter and returns a content source
 type MetaParser func(s []byte) (ContentSourceConfig, error)
 
-// ParseMetaJson is a default parser, that reads front matter as
-// JSON and returns a map[string]any type.
+// MetaParseJson that reads front matter as JSON, using
+// the golang stdlib, and returns a map[string]any type.
 func MetaParseJson(s []byte) (ContentSourceConfig, error) {
 	meta := ContentSourceConfig{}
 	if err := json.Unmarshal(s, &meta); err != nil {
 		return nil, err
+	}
+	return meta, nil
+}
+
+// MetaParseEmail parsed input as "email headers" (better name TBD)
+func MetaParseEmail(s []byte) (ContentSourceConfig, error) {
+	meta := ContentSourceConfig{}
+	if err := EmailUnmarshal(s, meta); err != nil {
+		return nil, fmt.Errorf("unable to parse metadata: %v", err)
 	}
 	return meta, nil
 }
