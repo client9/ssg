@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"log"
@@ -12,11 +13,24 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+func copyComments(src []byte) []byte {
+	out := []byte{}
+	lines := bytes.Split(src, []byte{'\n'})
+	for _, line := range lines {
+		if len(line) > 0 && line[0] == '#' {
+			out = append(out, line...)
+			out = append(out, byte('\n'))
+		}
+	}
+	return out
+}
 func convert(headFrom, headTo ssg.HeadType, src []byte) ([]byte, error) {
 	var meta []byte
 	var body []byte
 	head := make(map[string]any)
 	var err error
+
+	comments := copyComments(src)
 
 	// If Splitter returns a head of nil, it means no metadata of the type
 	// requested was found.  In this case, we skip
@@ -52,6 +66,9 @@ func convert(headFrom, headTo ssg.HeadType, src []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	comments = append(comments, byte('\n'))
+	meta = append(comments, meta...)
 
 	return ssg.Joiner(headTo, meta, body), nil
 }
