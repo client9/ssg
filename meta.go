@@ -2,6 +2,7 @@ package ssg
 
 import (
 	"bytes"
+	"encoding/json"
 )
 
 // Splits Input into metadata and the main content/body
@@ -15,61 +16,71 @@ type ContentSource interface {
 	OutputFile() string
 }
 
-// ParseMeta parses the front matter and returns a content source
-type ParseMeta func(s []byte) (ContentSourceConfig, error)
+// MetaParser parses the front matter and returns a content source
+type MetaParser func(s []byte) (ContentSourceConfig, error)
+
+// ParseMetaJson is a default parser, that reads front matter as
+// JSON and returns a map[string]any type.
+func MetaParseJson(s []byte) (ContentSourceConfig, error) {
+	meta := ContentSourceConfig{}
+	if err := json.Unmarshal(s, &meta); err != nil {
+		return nil, err
+	}
+	return meta, nil
+}
 
 // Splits a document into a head and body based on various markers.
 //
 
-type HeadType struct {
+type MetaHeadType struct {
 	Name        string
 	Prefix      []byte
 	Suffix      []byte
 	KeepMarkers bool
 }
 
-var HeadYaml = HeadType{
+var MetaHeadYaml = MetaHeadType{
 	Name:        "yaml",
 	Prefix:      []byte("---\n"),
 	Suffix:      []byte("\n---\n"),
 	KeepMarkers: false,
 }
-var HeadJson = HeadType{
+var MetaHeadJson = MetaHeadType{
 	Name:        "json",
 	Prefix:      []byte("{\n"),
 	Suffix:      []byte("\n}\n"),
 	KeepMarkers: true,
 }
-var HeadToml = HeadType{
+var MetaHeadToml = MetaHeadType{
 	Name:        "toml",
 	Prefix:      []byte("+++\n"),
 	Suffix:      []byte("\n+++\n"),
 	KeepMarkers: false,
 }
-var HeadEmail = HeadType{
+var MetaHeadEmail = MetaHeadType{
 	Name:        "email",
 	Prefix:      []byte(""),
 	Suffix:      []byte("\n\n\n"),
 	KeepMarkers: false,
 }
 
-func SplitMetaEmail(s []byte) ([]byte, []byte) {
-	return Splitter(HeadEmail, s)
+func MetaSplitEmail(s []byte) ([]byte, []byte) {
+	return Splitter(MetaHeadEmail, s)
 }
 
-func SplitMetaJson(s []byte) ([]byte, []byte) {
-	return Splitter(HeadJson, s)
+func MetaSplitJson(s []byte) ([]byte, []byte) {
+	return Splitter(MetaHeadJson, s)
 }
 
-func SplitMetaToml(s []byte) ([]byte, []byte) {
-	return Splitter(HeadYaml, s)
+func MetaSplitToml(s []byte) ([]byte, []byte) {
+	return Splitter(MetaHeadYaml, s)
 }
 
-func SplitMetaYaml(s []byte) ([]byte, []byte) {
-	return Splitter(HeadYaml, s)
+func MetaSplitYaml(s []byte) ([]byte, []byte) {
+	return Splitter(MetaHeadYaml, s)
 }
 
-func Splitter(head HeadType, s []byte) ([]byte, []byte) {
+func Splitter(head MetaHeadType, s []byte) ([]byte, []byte) {
 	if !bytes.HasPrefix(s, head.Prefix) {
 		return nil, s
 	}
@@ -84,7 +95,7 @@ func Splitter(head HeadType, s []byte) ([]byte, []byte) {
 	return nil, nil
 }
 
-func Joiner(head HeadType, meta []byte, body []byte) []byte {
+func Joiner(head MetaHeadType, meta []byte, body []byte) []byte {
 	out := []byte{}
 	if !head.KeepMarkers {
 		out = append(out, head.Prefix...)

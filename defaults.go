@@ -1,18 +1,14 @@
 package ssg
 
-import (
-	"encoding/json"
-)
-
 func ConfigDefault(config *SiteConfig) {
 	if config.ContentDir == "" {
 		config.ContentDir = "content"
 	}
-	if config.Split == nil {
-		config.Split = ContentSplitJson
+	if config.MetaSplit == nil {
+		config.MetaSplit = MetaSplitJson
 	}
-	if config.Metaparser == nil {
-		config.Metaparser = ParseMetaJson
+	if config.MetaParser == nil {
+		config.MetaParser = MetaParseJson
 	}
 	if config.OutputExt == "" {
 		config.OutputExt = ".html"
@@ -29,21 +25,6 @@ func ConfigDefault(config *SiteConfig) {
 	if config.BaseTemplate == "" {
 		config.BaseTemplate = "baseof.html"
 	}
-}
-
-// Splits a file in front/body based on JSON front matter signature.
-func ContentSplitJson(s []byte) ([]byte, []byte) {
-	return Splitter(HeadJson, s)
-}
-
-// ParseMetaJson is a default parser, that reads front matter as
-// JSON and returns a map[string]any type.
-func ParseMetaJson(s []byte) (ContentSourceConfig, error) {
-	meta := ContentSourceConfig{}
-	if err := json.Unmarshal(s, &meta); err != nil {
-		return nil, err
-	}
-	return meta, nil
 }
 
 // Default ContentSource -- it's just a map any with some specific

@@ -12,7 +12,7 @@ func TestSplitNoHead(t *testing.T) {
 content
 `)
 	bin := []byte(in)
-	head, body := Splitter(HeadYaml, bin)
+	head, body := Splitter(MetaHeadYaml, bin)
 	if head != nil {
 		t.Errorf("Expected empty head, got %q", head)
 	}
@@ -28,7 +28,7 @@ func TestContentSplitJson(t *testing.T) {
 content
 `)
 	bin := []byte(in)
-	head, body := Splitter(HeadJson, bin)
+	head, body := Splitter(MetaHeadJson, bin)
 
 	want := []byte("{\n\"foo\": \"bar\"\n}\n")
 	if !bytes.Equal(want, head) {
@@ -39,7 +39,7 @@ content
 	}
 
 	// make sure it parses
-	_, err := ParseMetaJson(head)
+	_, err := MetaParseJson(head)
 	if err != nil {
 		t.Errorf("Json didn't parse,%v", err)
 	}
@@ -54,7 +54,7 @@ foo: bar
 content
 `)
 	bin := []byte(in)
-	head, body := Splitter(HeadYaml, bin)
+	head, body := Splitter(MetaHeadYaml, bin)
 
 	if !bytes.Equal(head, []byte("foo: bar")) {
 		t.Errorf("Expected foo:bar, got %q", head)

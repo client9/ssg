@@ -13,8 +13,8 @@ type SiteConfig struct {
 
 	ContentDir string
 
-	Split      ContentSplitter
-	Metaparser ParseMeta
+	MetaSplit  ContentSplitter
+	MetaParser MetaParser
 
 	InputExt    string // ".md"
 	OutputExt   string // ".html"
@@ -84,12 +84,12 @@ func LoadContent(config SiteConfig, out *[]ContentSourceConfig) error {
 			return fmt.Errorf("LoadContent: reading page file %s failed: %w", path, err)
 		}
 
-		head, body := config.Split(raw)
+		head, body := config.MetaSplit(raw)
 		// TODO, if head is nil, then we should just copy
 		// i.e.  if doc is "{\n}body" that's fine, keep going
 		// i.e.  but if doc is "body", then just copy.
 
-		page, err := config.Metaparser(head)
+		page, err := config.MetaParser(head)
 		if err != nil {
 			return fmt.Errorf("unable to parse front matter: %v", err)
 		}
