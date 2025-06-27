@@ -60,8 +60,7 @@ func Set(kv map[string]any, k string, v any, tx []ValueTransformer) error {
 	next := kv
 	for _, b := range base {
 		if _, ok := next[b]; !ok {
-			next = make(map[string]any)
-			kv[b] = next
+			next[b] = make(map[string]any)
 		}
 		tmp, ok := next[b].(map[string]any)
 		if !ok {
