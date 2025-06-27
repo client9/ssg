@@ -42,7 +42,6 @@ func main() {
 
 	// config and pipeline
 	conf := ssg.SiteConfig{
-		OutputDir: "public",
 		Pipeline: []ssg.Renderer{
 			ssg.NewTemplateMacro(fns),
 			ssg.HTMLRender,

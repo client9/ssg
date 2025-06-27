@@ -5,9 +5,6 @@ import (
 )
 
 func ConfigDefault(config *SiteConfig) {
-	if config.OutputDir == "" {
-		config.OutputDir = "public"
-	}
 	if config.ContentDir == "" {
 		config.ContentDir = "content"
 	}

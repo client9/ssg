@@ -12,7 +12,6 @@ type SiteConfig struct {
 	TemplateDir  string
 	BaseTemplate string
 
-	OutputDir  string
 	ContentDir string
 
 	Split      ContentSplitter
@@ -50,12 +49,6 @@ func Main2(config SiteConfig, pages *[]ContentSourceConfig) error {
 		if err := MultiRender(config.Pipeline, source, p); err != nil {
 			return err
 		}
-
-		/*
-			if err = WriteOutput(config.OutputDir, p.OutputFile(), source); err != nil {
-				return err
-			}
-		*/
 	}
 
 	return nil
