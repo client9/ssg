@@ -95,8 +95,7 @@ func writeCSV(parts []string) ([]byte, error) {
 	return out.Bytes(), nil
 }
 
-func EmailMeta(src []byte, tx ...ValueTransformer) (map[string]any, error) {
-	out := make(map[string]any)
+func EmailUnmarshal(src []byte, out map[string]any, tx ...ValueTransformer) error {
 	scan := bufio.NewScanner(bytes.NewReader(src))
 	scan.Split(bufio.ScanLines)
 	key := ""
@@ -107,7 +106,7 @@ func EmailMeta(src []byte, tx ...ValueTransformer) (map[string]any, error) {
 		if len(text) == 0 || text[0] == '#' {
 			if key != "" {
 				if err := Set(out, key, prev, tx); err != nil {
-					return nil, err
+					return err
 				}
 				key = ""
 				prev = ""
@@ -117,7 +116,7 @@ func EmailMeta(src []byte, tx ...ValueTransformer) (map[string]any, error) {
 
 		if text[0] == ' ' || text[0] == '\t' {
 			if key == "" {
-				return nil, fmt.Errorf("invalid line starting with whitespace")
+				return fmt.Errorf("invalid line starting with whitespace")
 			}
 			prev += " " + strings.TrimSpace(text)
 			continue
@@ -125,25 +124,25 @@ func EmailMeta(src []byte, tx ...ValueTransformer) (map[string]any, error) {
 		// this is a normal line.
 		if key != "" {
 			if err := Set(out, key, prev, tx); err != nil {
-				return nil, err
+				return err
 			}
 		}
 		k, v, ok := strings.Cut(text, ":")
 		if !ok {
-			return nil, fmt.Errorf("malformed header line: " + text)
+			return fmt.Errorf("malformed header line: " + text)
 		}
 		key = k
 		prev = strings.TrimSpace(v)
 	}
 	if err := scan.Err(); err != nil {
-		return nil, err
+		return err
 	}
 	if key != "" {
 		if err := Set(out, key, prev, tx); err != nil {
-			return nil, err
+			return err
 		}
 	}
-	return out, nil
+	return nil
 }
 
 func appendKey(out []byte, prefix, key string) []byte {

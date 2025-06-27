@@ -7,14 +7,14 @@ import (
 )
 
 func TestEmailMeta(t *testing.T) {
-
+	out := make(map[string]any)
 	msg := []byte(`
 first: 1
 # comment
 
 second: 2
 `)
-	out, err := EmailMeta(msg)
+	err := EmailUnmarshal(msg, out)
 	if err != nil {
 		t.Fatalf("Error: %v", err)
 	}
@@ -23,13 +23,13 @@ second: 2
 	}
 }
 func TestEmailMetaContinued(t *testing.T) {
-
+	out := make(map[string]any)
 	msg := []byte(`
 first: This is 
  a line
 second: 2
 `)
-	out, err := EmailMeta(msg)
+	err := EmailUnmarshal(msg, out)
 	if err != nil {
 		t.Fatalf("Error: %v", err)
 	}
