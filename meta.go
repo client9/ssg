@@ -53,6 +53,14 @@ var HeadEmail = HeadType{
 	KeepMarkers: false,
 }
 
+func SplitMetaEmail(s []byte) ([]byte, []byte) {
+	return Splitter(HeadEmail, s)
+}
+
+func SplitMetaJson(s []byte) ([]byte, []byte) {
+	return Splitter(HeadJson, s)
+}
+
 func Splitter(head HeadType, s []byte) ([]byte, []byte) {
 	if !bytes.HasPrefix(s, head.Prefix) {
 		return nil, s
@@ -80,7 +88,7 @@ func Joiner(head HeadType, meta []byte, body []byte) []byte {
 	} else {
 		out = append(out, byte('\n'))
 	}
-	
+
 	out = append(out, bytes.TrimSpace(body)...)
 	return out
 }
