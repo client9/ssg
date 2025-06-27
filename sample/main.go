@@ -40,19 +40,13 @@ func main() {
 		"elink": elink,
 	}
 
-	// create page assembly templates
-	pageTemplate, err := ssg.NewPageRender("layout", fns)
-	if err != nil {
-		log.Fatalf("Page Template failed: %v", err)
-	}
-
 	// config and pipeline
 	conf := ssg.SiteConfig{
 		OutputDir: "public",
 		Pipeline: []ssg.Renderer{
 			ssg.NewTemplateMacro(fns),
 			ssg.HTMLRender,
-			pageTemplate,
+			ssg.Must(ssg.NewPageRender("layout", fns)),
 			HTMLPretty,
 			ssg.WriteOutput("public"),
 		},
@@ -65,8 +59,7 @@ func main() {
 	pages := []ssg.ContentSourceConfig{}
 
 	// do it
-	err = ssg.Main2(conf, &pages)
-	if err != nil {
+	if err := ssg.Main2(conf, &pages); err != nil {
 		log.Fatalf("Main failed: %s", err)
 	}
 }
