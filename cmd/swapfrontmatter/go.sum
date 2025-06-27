@@ -1,5 +1,5 @@
-github.com/client9/ssg v0.0.0-20250624063958-d843a490c943 h1:V/AUGu2ACOQzn+1OCxIUtu6qDLMbEg21VnLQyxCgkhw=
-github.com/client9/ssg v0.0.0-20250624063958-d843a490c943/go.mod h1:UEuRp8D4V5PNgQwl2jfiYtSdnWswVRWnX16nX54jcTY=
+github.com/client9/ssg v0.0.0-20250627002230-a0cd033a3ab4 h1:Gho0z93CLikinn70EPKm57y0Ke93McDDSeUrAxgSR8k=
+github.com/client9/ssg v0.0.0-20250627002230-a0cd033a3ab4/go.mod h1:UEuRp8D4V5PNgQwl2jfiYtSdnWswVRWnX16nX54jcTY=
 golang.org/x/net v0.41.0 h1:vBTly1HeNPEn3wtREYfy4GZ/NECgw2Cnl+nK6Nz3uvw=
 golang.org/x/net v0.41.0/go.mod h1:B/K4NNqkfmg07DQYrbwvSluqCJOOXwUjeb/5lOisjbA=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405 h1:yhCVgyC4o1eVCa2tZl7eS0r+SDo693bJlVdllGtEeKM=
