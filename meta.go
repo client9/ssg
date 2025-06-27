@@ -61,6 +61,14 @@ func SplitMetaJson(s []byte) ([]byte, []byte) {
 	return Splitter(HeadJson, s)
 }
 
+func SplitMetaToml(s []byte) ([]byte, []byte) {
+	return Splitter(HeadYaml, s)
+}
+
+func SplitMetaYaml(s []byte) ([]byte, []byte) {
+	return Splitter(HeadYaml, s)
+}
+
 func Splitter(head HeadType, s []byte) ([]byte, []byte) {
 	if !bytes.HasPrefix(s, head.Prefix) {
 		return nil, s
