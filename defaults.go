@@ -8,9 +8,6 @@ func ConfigDefault(config *SiteConfig) {
 	if config.ContentDir == "" {
 		config.ContentDir = "content"
 	}
-	if config.TemplateDir == "" {
-		config.TemplateDir = "layout"
-	}
 	if config.Split == nil {
 		config.Split = ContentSplitJson
 	}

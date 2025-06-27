@@ -9,7 +9,6 @@ import (
 )
 
 type SiteConfig struct {
-	TemplateDir  string
 	BaseTemplate string
 
 	ContentDir string
