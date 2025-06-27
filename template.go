@@ -9,6 +9,13 @@ import (
 	"text/template"
 )
 
+func Must(r Renderer, err error) Renderer {
+	if err != nil {
+		panic(err)
+	}
+	return r
+}
+
 func NewPageRender(tdir string, fns template.FuncMap) (Renderer, error) {
 
 	// load in all the golang templates
