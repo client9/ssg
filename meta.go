@@ -8,14 +8,6 @@ import (
 // Splits Input into metadata and the main content/body
 type ContentSplitter func(s []byte) ([]byte, []byte)
 
-// ContentSource only needs to know what template to use and
-// where the output is going.
-type ContentSource interface {
-	TemplateName() string
-	InputFile() string
-	OutputFile() string
-}
-
 // MetaParser parses the front matter and returns a content source
 type MetaParser func(s []byte) (ContentSourceConfig, error)
 

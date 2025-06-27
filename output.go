@@ -10,7 +10,7 @@ import (
 func WriteOutput(outdir string) Renderer {
 	return func(wr io.Writer, source io.Reader, data any) (err error) {
 		var f *os.File
-		cs := data.(ContentSource)
+		cs := data.(ContentSourceConfig)
 		file := cs.OutputFile()
 		fullpath := filepath.Join(outdir, file)
 		dir := filepath.Dir(fullpath)
