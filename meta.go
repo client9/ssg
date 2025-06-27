@@ -73,13 +73,14 @@ func Joiner(head HeadType, meta []byte, body []byte) []byte {
 	if !head.KeepMarkers {
 		out = append(out, head.Prefix...)
 	}
-	out = append(out, meta...)
+	out = append(out, bytes.TrimSpace(meta)...)
 
 	if !head.KeepMarkers {
 		out = append(out, head.Suffix...)
 	} else {
 		out = append(out, byte('\n'))
 	}
-	out = append(out, body...)
+	
+	out = append(out, bytes.TrimSpace(body)...)
 	return out
 }
