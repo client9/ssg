@@ -23,7 +23,7 @@ func MetaParseJson(s []byte) (ContentSourceConfig, error) {
 }
 
 // MetaParseEmail parsed input as "email headers" (better name TBD)
-func MetaParseEmail(s []byte, tx ...ValueTransformer) MetaParser {
+func MetaParseEmail(tx ...ValueTransformer) MetaParser {
 	return func(s []byte) (ContentSourceConfig, error) {
 		meta := ContentSourceConfig{}
 		if err := EmailUnmarshal(s, meta, tx...); err != nil {
