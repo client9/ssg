@@ -23,12 +23,14 @@ func MetaParseJson(s []byte) (ContentSourceConfig, error) {
 }
 
 // MetaParseEmail parsed input as "email headers" (better name TBD)
-func MetaParseEmail(s []byte) (ContentSourceConfig, error) {
-	meta := ContentSourceConfig{}
-	if err := EmailUnmarshal(s, meta); err != nil {
-		return nil, fmt.Errorf("unable to parse metadata: %v", err)
+func MetaParseEmail(s []byte, tx ...ValueTransformer) MetaParser {
+	return func(s []byte) (ContentSourceConfig, error) {
+		meta := ContentSourceConfig{}
+		if err := EmailUnmarshal(s, meta, tx...); err != nil {
+			return nil, fmt.Errorf("unable to parse metadata: %v", err)
+		}
+		return meta, nil
 	}
-	return meta, nil
 }
 
 // Splits a document into a head and body based on various markers.
