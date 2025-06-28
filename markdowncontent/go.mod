@@ -1,4 +1,4 @@
-module github.com/client9/markdowncontent
+module github.com/client9/ssg/markdowncontent
 
 go 1.24.4
 
