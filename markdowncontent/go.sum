@@ -1,0 +1,4 @@
+github.com/client9/ssg v0.0.0-20250627231738-173ae81c3e74 h1:iLxzAAn53aGGJqRNcCJ+OQeNNDFjd83BUR5Ke27Jfds=
+github.com/client9/ssg v0.0.0-20250627231738-173ae81c3e74/go.mod h1:LTTFnuKrTUzzgSaer9mqcT2GZ1Xs8ERmwEzJ8O9q4j4=
+github.com/yuin/goldmark v1.7.12 h1:YwGP/rrea2/CnCtUHgjuolG/PnMxdQtPMO5PvaE2/nY=
+github.com/yuin/goldmark v1.7.12/go.mod h1:ip/1k0VRfGynBgxOz0yCqHrbZXhcjxyuS66Brc7iBKg=
