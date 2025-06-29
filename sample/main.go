@@ -43,6 +43,14 @@ func main() {
 
 	// config and pipeline
 	conf := ssg.SiteConfig{
+		ContentDir: "content",
+		BaseTemplate: "baseof.html",
+		MetaSplit: ssg.MetaSplitJson,
+		MetaParser: ssg.MetaParseJson,
+		InputExt: ".html",
+		OutputExt: ".html",
+		IndexSource: "index.html",
+		IndexDest: "index.html",
 		Pipeline: []ssg.Renderer{
 			ssg.NewTemplateMacro(fns),
 			htmlcontent.Render,
@@ -57,6 +65,11 @@ func main() {
 	//  from database or something else
 
 	pages := []ssg.ContentSourceConfig{}
+ 
+	// load in content
+	if err := ssg.LoadContent(conf, &pages); err != nil {
+		log.Fatalf("load content failed: %s", err)
+	}
 
 	// do it
 	if err := ssg.Main2(conf, &pages); err != nil {

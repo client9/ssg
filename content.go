@@ -24,19 +24,9 @@ type SiteConfig struct {
 	Pipeline []Renderer
 }
 
+// TODO: name change
+// TODO: make parallel
 func Main2(config SiteConfig, pages *[]ContentSourceConfig) error {
-
-	// both of these
-	//   maybe should be pulled out of function
-
-	ConfigDefault(&config)
-
-	// load in content
-	if err := LoadContent(config, pages); err != nil {
-		return fmt.Errorf("load content failed: %w", err)
-	}
-
-	// TBD: do global site stuff
 
 	for _, p := range *pages {
 		// give every page the global config
@@ -56,13 +46,16 @@ func Main2(config SiteConfig, pages *[]ContentSourceConfig) error {
 func LoadContent(config SiteConfig, out *[]ContentSourceConfig) error {
 
 	contentDir := config.ContentDir
+	if contentDir == "" {
+		return fmt.Errorf("ContentDir in config is empty")
+	}
 	//log.Printf("In content dir: %s", contentDir)
 
 	err := filepath.WalkDir(contentDir, func(path string, d fs.DirEntry, err error) error {
 		//log.Printf("LoadContent: got %s", path)
 		// not sure how this works
 		if err != nil {
-			return fmt.Errorf("LoadContent walkdir error: %v", err)
+			return fmt.Errorf("LoadContent walkdir error @ %q: %v", path, err)
 		}
 
 		// do not look at linux/mac dot dirs
