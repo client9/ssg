@@ -26,6 +26,24 @@ import (
 // {{template "base.html" .}} because base.html is parsed into the same set.
 // See TemplateRouter for details.
 //
+// Block override constraint: all templates in the same directory share one
+// template set, so only one template per directory may use {{define "main"}}
+// (or any other block name). If two sibling templates both define the same
+// block, Go's template engine will error. The solution is to give each
+// template that overrides a block its own subdirectory:
+//
+//	layout/
+//	  baseof.html       ← defines {{block "main" .}}
+//	  post/
+//	    index.html      ← {{define "main"}} for post pages
+//	  tag-list/
+//	    index.html      ← {{define "main"}} for tag listing pages
+//	  tag-index/
+//	    index.html      ← {{define "main"}} for the tag index page
+//
+// Each subdirectory gets an isolated template set that inherits baseof.html
+// from the parent but does not share its set with siblings.
+//
 // fns is an optional map of additional template functions made available to
 // all templates. Pass nil for no extra functions.
 func NewPageRender(tdir string, fns template.FuncMap) (Renderer, error) {

@@ -1,5 +1,7 @@
 package ssg
 
+import "maps"
+
 // LoadDefaults fills in zero-value fields of conf with sensible defaults
 // for a standard HTML site with clean URLs.
 func LoadDefaults(conf *LoadConfig) {
@@ -21,6 +23,27 @@ func LoadDefaults(conf *LoadConfig) {
 	if conf.PathTransformer == nil {
 		conf.PathTransformer = CleanURLs(conf.InputExt, ".html")
 	}
+}
+
+// NewPage creates a ContentSourceConfig with the given output path, template,
+// and data. It is the standard constructor for all pages — both those loaded
+// from files (via LoadContent) and those created programmatically.
+//
+// The data map is merged first; OutputFile and TemplateName are then set from
+// the explicit arguments and always win. Content is initialised to an empty
+// byte slice; LoadContent overwrites it with the file body.
+//
+//	p := ssg.NewPage("tags/go/index.html", "tag-list/index.html", map[string]any{
+//	    "Tag":   "go",
+//	    "Pages": tagPages,
+//	})
+func NewPage(outputFile, templateName string, data map[string]any) ContentSourceConfig {
+	p := make(ContentSourceConfig, len(data)+3)
+	maps.Copy(p, data)
+	p["OutputFile"] = outputFile
+	p["TemplateName"] = templateName
+	p["Content"] = []byte{}
+	return p
 }
 
 // ContentSourceConfig holds metadata and content for a single page.

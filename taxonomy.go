@@ -1,6 +1,5 @@
 package ssg
 
-import "maps"
 
 // GroupByString groups pages by the string value of a single-value field
 // (e.g. "Category"). Pages where the field is absent, empty, or not a string
@@ -42,26 +41,7 @@ func GroupByStrings(pages []ContentSourceConfig, field string) map[string][]Cont
 	return out
 }
 
-// SyntheticPage creates a ContentSourceConfig for a page not backed by a
-// file on disk. The data map is merged into the page first; OutputFile and
-// TemplateName are then set from the explicit arguments and always win over
-// any same-named key in data.
-//
-// Content is set to an empty byte slice so Render's pipeline can render the
-// page using the template alone.
-//
-//	p := ssg.SyntheticPage("tags/go/index.html", "tag-list.html", map[string]any{
-//	    "Tag":   "go",
-//	    "Pages": goPages,
-//	})
-func SyntheticPage(outputFile, templateName string, data map[string]any) ContentSourceConfig {
-	p := make(ContentSourceConfig, len(data)+3)
-	maps.Copy(p, data)
-	p["OutputFile"] = outputFile
-	p["TemplateName"] = templateName
-	p["Content"] = []byte{}
-	return p
-}
+
 
 // toStringSlice normalises a field value to []string, handling the types
 // that frontmatter parsers commonly produce.

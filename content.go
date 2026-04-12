@@ -83,22 +83,26 @@ func LoadContent(conf LoadConfig, out *[]ContentSourceConfig) error {
 			return fmt.Errorf("unable to parse front matter: %v", err)
 		}
 
-		if _, ok := page["TemplateName"]; !ok {
-			page["TemplateName"] = conf.BaseTemplate
-		}
-
-		if _, ok := page["OutputFile"]; !ok {
+		// Resolve OutputFile: frontmatter wins, then PathTransformer.
+		outputFile := page.OutputFile()
+		if outputFile == "" {
 			relPath := path[len(conf.ContentDir)+1:]
-			out := conf.PathTransformer(relPath)
-			if out == "" {
+			outputFile = conf.PathTransformer(relPath)
+			if outputFile == "" {
 				return nil // transformer signalled skip
 			}
-			page["OutputFile"] = out
 		}
 
-		page["InputFile"] = path
-		page["Content"] = body
-		*out = append(*out, page)
+		// Resolve TemplateName: frontmatter wins, then BaseTemplate.
+		templateName := page.TemplateName()
+		if templateName == "" {
+			templateName = conf.BaseTemplate
+		}
+
+		p := NewPage(outputFile, templateName, page)
+		p["InputFile"] = path
+		p["Content"] = body
+		*out = append(*out, p)
 		return nil
 	})
 

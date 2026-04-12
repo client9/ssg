@@ -88,9 +88,9 @@ func TestGroupByStrings_missingField(t *testing.T) {
 	}
 }
 
-func TestSyntheticPage(t *testing.T) {
+func TestNewPage(t *testing.T) {
 	data := map[string]any{"Tag": "go", "Pages": []ContentSourceConfig{}}
-	p := SyntheticPage("tags/go/index.html", "tag-list.html", data)
+	p := NewPage("tags/go/index.html", "tag-list.html", data)
 
 	if got := p.OutputFile(); got != "tags/go/index.html" {
 		t.Errorf("OutputFile = %q", got)
@@ -106,18 +106,18 @@ func TestSyntheticPage(t *testing.T) {
 	}
 }
 
-func TestSyntheticPage_dataCannotOverrideOutputFile(t *testing.T) {
+func TestNewPage_dataCannotOverrideOutputFile(t *testing.T) {
 	// OutputFile in data must not win over the explicit argument
 	data := map[string]any{"OutputFile": "should-be-ignored.html"}
-	p := SyntheticPage("real/index.html", "base.html", data)
+	p := NewPage("real/index.html", "base.html", data)
 
 	if got := p.OutputFile(); got != "real/index.html" {
 		t.Errorf("OutputFile = %q, want real/index.html", got)
 	}
 }
 
-func TestSyntheticPage_nilData(t *testing.T) {
-	p := SyntheticPage("out.html", "base.html", nil)
+func TestNewPage_nilData(t *testing.T) {
+	p := NewPage("out.html", "base.html", nil)
 	if p.OutputFile() != "out.html" {
 		t.Error("OutputFile not set with nil data")
 	}
