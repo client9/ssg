@@ -1,7 +1,7 @@
 package ssg
 
 // LoadDefaults fills in zero-value fields of conf with sensible defaults
-// for a standard HTML site.
+// for a standard HTML site with clean URLs.
 func LoadDefaults(conf *LoadConfig) {
 	if conf.ContentDir == "" {
 		conf.ContentDir = "content"
@@ -12,20 +12,14 @@ func LoadDefaults(conf *LoadConfig) {
 	if conf.MetaParser == nil {
 		conf.MetaParser = MetaParseJson
 	}
-	if conf.OutputExt == "" {
-		conf.OutputExt = ".html"
-	}
 	if conf.InputExt == "" {
 		conf.InputExt = ".html"
 	}
-	if conf.IndexSource == "" {
-		conf.IndexSource = "index.html"
-	}
-	if conf.IndexDest == "" {
-		conf.IndexDest = "index.html"
-	}
 	if conf.BaseTemplate == "" {
 		conf.BaseTemplate = "baseof.html"
+	}
+	if conf.PathTransformer == nil {
+		conf.PathTransformer = CleanURLs(conf.InputExt, ".html")
 	}
 }
 

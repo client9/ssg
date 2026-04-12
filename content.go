@@ -14,13 +14,17 @@ type LoadConfig struct {
 	ContentDir   string
 	BaseTemplate string
 
-	MetaSplit ContentSplitter
+	MetaSplit  ContentSplitter
 	MetaParser MetaParser
 
-	InputExt    string // e.g. ".md"
-	OutputExt   string // e.g. ".html"
-	IndexSource string // e.g. "index.md"
-	IndexDest   string // e.g. "index.html"
+	// InputExt filters which files LoadContent processes (e.g. ".md", ".html").
+	InputExt string
+
+	// PathTransformer maps each file's relative input path to its output path.
+	// Return an empty string to skip the file.
+	// Use CleanURLs or UglyURLs; wrap with SlugNormalize to compose.
+	// LoadDefaults sets this to CleanURLs(InputExt, ".html") if nil.
+	PathTransformer PathTransformer
 }
 
 // Render renders all pages through pipeline.
@@ -47,12 +51,11 @@ func Render(pipeline []Renderer, pages []ContentSourceConfig, globals map[string
 // LoadContent walks conf.ContentDir, parses each matching file's frontmatter,
 // and appends a ContentSourceConfig to out for each page found.
 func LoadContent(conf LoadConfig, out *[]ContentSourceConfig) error {
-	contentDir := conf.ContentDir
-	if contentDir == "" {
+	if conf.ContentDir == "" {
 		return fmt.Errorf("ContentDir in config is empty")
 	}
 
-	err := filepath.WalkDir(contentDir, func(path string, d fs.DirEntry, err error) error {
+	err := filepath.WalkDir(conf.ContentDir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return fmt.Errorf("LoadContent walkdir error @ %q: %v", path, err)
 		}
@@ -85,15 +88,12 @@ func LoadContent(conf LoadConfig, out *[]ContentSourceConfig) error {
 		}
 
 		if _, ok := page["OutputFile"]; !ok {
-			s := path[len(contentDir)+1:]
-			s = strings.TrimSuffix(s, filepath.Ext(s))
-
-			if d.Name() == conf.IndexSource && conf.IndexDest != "" {
-				s += conf.OutputExt
-			} else {
-				s = filepath.Join(s, conf.IndexDest)
+			relPath := path[len(conf.ContentDir)+1:]
+			out := conf.PathTransformer(relPath)
+			if out == "" {
+				return nil // transformer signalled skip
 			}
-			page["OutputFile"] = s
+			page["OutputFile"] = out
 		}
 
 		page["InputFile"] = path
