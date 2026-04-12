@@ -36,7 +36,7 @@ func Main2(config SiteConfig, pages *[]ContentSourceConfig) error {
 		source := p["Content"].([]byte)
 
 		if err := MultiRender(config.Pipeline, source, p); err != nil {
-			return err
+			return fmt.Errorf("%s: %w", p.InputFile(), err)
 		}
 	}
 
@@ -111,6 +111,7 @@ func LoadContent(config SiteConfig, out *[]ContentSourceConfig) error {
 			page["OutputFile"] = s
 		}
 
+		page["InputFile"] = path
 		page["Content"] = body
 		*out = append(*out, page)
 		return nil

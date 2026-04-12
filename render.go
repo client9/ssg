@@ -3,7 +3,6 @@ package ssg
 import (
 	"bytes"
 	"io"
-	"text/template"
 )
 
 // "Template Macro"  processes source and writing output
@@ -29,26 +28,6 @@ func MultiRender(renders []Renderer, initial []byte, data any) error {
 	return nil
 }
 
-// create a simple macro maker.  You pass-in whatever funcs.
-//
-//	each page is parsed as a text/template then executed
-func NewTemplateMacro(funcs template.FuncMap) Renderer {
-	t := template.New("_macro")
-	if funcs != nil {
-		t = t.Funcs(funcs)
-	}
-	return func(wr io.Writer, src io.Reader, data any) error {
-		raw, err := io.ReadAll(src)
-		if err != nil {
-			return err
-		}
-		t, err = t.Parse(string(raw))
-		if err != nil {
-			return err
-		}
-		return t.Execute(wr, data)
-	}
-}
 
 func ToBytes(buf *bytes.Buffer) Renderer {
 	return func(wr io.Writer, src io.Reader, data any) error {
