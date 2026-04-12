@@ -7,7 +7,7 @@ func TestGroupByString(t *testing.T) {
 		{"Category": "go", "Title": "A"},
 		{"Category": "go", "Title": "B"},
 		{"Category": "web", "Title": "C"},
-		{"Title": "D"},           // no Category
+		{"Title": "D"},                 // no Category
 		{"Category": "", "Title": "E"}, // empty Category
 	}
 

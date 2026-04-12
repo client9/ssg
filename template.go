@@ -2,11 +2,11 @@ package ssg
 
 import (
 	"fmt"
+	"html/template"
 	"io"
 	"io/fs"
 	"path/filepath"
 	"strings"
-	"html/template"
 )
 
 // NewPageRender loads HTML templates from tdir and returns a Renderer that

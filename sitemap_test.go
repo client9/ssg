@@ -48,7 +48,7 @@ func TestWriteSitemap_skipsEmptyOutputFile(t *testing.T) {
 	dir := t.TempDir()
 	pages := []ContentSourceConfig{
 		{"OutputFile": "index.html"},
-		{},                            // no OutputFile
+		{}, // no OutputFile
 		{"OutputFile": "about.html"},
 	}
 

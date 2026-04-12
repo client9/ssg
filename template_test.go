@@ -48,7 +48,7 @@ func TestExecuteTemplate_rootTemplate(t *testing.T) {
 
 func TestExecuteTemplate_subdirectory(t *testing.T) {
 	root := makeLayout(t, map[string]string{
-		"base.html":      `BASE:{{.Content}}`,
+		"base.html":        `BASE:{{.Content}}`,
 		"blog/single.html": `BLOG:{{.Title}}`,
 	})
 
@@ -96,9 +96,9 @@ func TestExecuteTemplate_inheritance(t *testing.T) {
 // templates from both its parent and grandparent.
 func TestExecuteTemplate_deepInheritance(t *testing.T) {
 	root := makeLayout(t, map[string]string{
-		"wrap.html":             `[{{.Content}}]`,
-		"blog/mid.html":         `MID:{{.Content}}`,
-		"blog/posts/page.html":  `{{template "wrap.html" .}}`,
+		"wrap.html":            `[{{.Content}}]`,
+		"blog/mid.html":        `MID:{{.Content}}`,
+		"blog/posts/page.html": `{{template "wrap.html" .}}`,
 	})
 
 	router, err := templateMap(root, nil)

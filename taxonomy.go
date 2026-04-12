@@ -1,6 +1,5 @@
 package ssg
 
-
 // GroupByString groups pages by the string value of a single-value field
 // (e.g. "Category"). Pages where the field is absent, empty, or not a string
 // are skipped.
@@ -40,8 +39,6 @@ func GroupByStrings(pages []ContentSourceConfig, field string) map[string][]Cont
 	}
 	return out
 }
-
-
 
 // toStringSlice normalises a field value to []string, handling the types
 // that frontmatter parsers commonly produce.

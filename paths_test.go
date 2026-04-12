@@ -10,7 +10,7 @@ func TestCleanURLs(t *testing.T) {
 	}{
 		{"foo.md", "foo/index.html"},
 		{"bar/baz.md", "bar/baz/index.html"},
-		{"index.md", "index.html"},          // root index stays flat
+		{"index.md", "index.html"},           // root index stays flat
 		{"blog/index.md", "blog/index.html"}, // nested index stays flat
 		{"foo.html", ""},                     // wrong extension → skip
 		{"foo.txt", ""},                      // wrong extension → skip

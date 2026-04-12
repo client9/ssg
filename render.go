@@ -5,7 +5,6 @@ import (
 	"io"
 )
 
-//
 //	"data" is optional supplemental data.  It is just passed on to the
 //
 // underlying implementation.  If not used, then data can be nil.
@@ -27,7 +26,6 @@ func MultiRender(renders []Renderer, initial []byte, data any) error {
 	return nil
 }
 
-
 func ToBytes(buf *bytes.Buffer) Renderer {
 	return func(wr io.Writer, src io.Reader, data any) error {
 		_, err := io.Copy(buf, src)
@@ -41,9 +39,8 @@ func Identity(wr io.Writer, src io.Reader, data any) error {
 }
 
 func Must(r Renderer, err error) Renderer {
-        if err != nil {
-                panic(err)
-        }
-        return r
+	if err != nil {
+		panic(err)
+	}
+	return r
 }
-
