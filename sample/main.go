@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/client9/ssg"
-	"github.com/client9/ssg/htmlcontent"
+	"github.com/client9/ssg/render/htmlclean"
 	"html"
 	"io"
 	"log"
@@ -53,7 +53,7 @@ func main() {
 		IndexDest: "index.html",
 		Pipeline: []ssg.Renderer{
 			ssg.NewTemplateMacro(fns),
-			htmlcontent.Render,
+			htmlclean.Render,
 			ssg.Must(ssg.NewPageRender("layout", fns)),
 			HTMLPretty,
 			ssg.WriteOutput("public"),

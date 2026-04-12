@@ -1,4 +1,4 @@
-package ssg
+package email
 
 import (
 	"strings"
@@ -14,7 +14,7 @@ first: 1
 
 second: 2
 `)
-	err := EmailUnmarshal(msg, out)
+	err := Unmarshal(msg, out)
 	if err != nil {
 		t.Fatalf("Error: %v", err)
 	}
@@ -22,14 +22,15 @@ second: 2
 		t.Fatalf("Expected 2 keys, got %d %v", len(out), out)
 	}
 }
+
 func TestEmailMetaContinued(t *testing.T) {
 	out := make(map[string]any)
 	msg := []byte(`
-first: This is 
+first: This is
  a line
 second: 2
 `)
-	err := EmailUnmarshal(msg, out)
+	err := Unmarshal(msg, out)
 	if err != nil {
 		t.Fatalf("Error: %v", err)
 	}
@@ -44,7 +45,6 @@ second: 2
 }
 
 func TestEmailWrite1(t *testing.T) {
-
 	sub := map[string]any{
 		"foo":  "bar",
 		"ding": "bat",
@@ -79,7 +79,7 @@ amap.ding: bat
 amap.foo: bar
 `)
 
-	out, err := EmailMarshal(data)
+	out, err := Marshal(data)
 	if err != nil {
 		t.Fatalf("got error: %v", err)
 	}
@@ -89,6 +89,5 @@ amap.foo: bar
 		t.Errorf("Want %s\nGot %s", want, s)
 	}
 }
-func TestEmailWrite2(t *testing.T) {
 
-}
+func TestEmailWrite2(t *testing.T) {}

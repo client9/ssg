@@ -1,10 +1,9 @@
-module github.com/client9/ssg/cmd/frontmatter
+module github.com/client9/ssg/cmd/swapfrontmatter
 
-go 1.24.4
+go 1.23.0
 
 require (
-	github.com/client9/ssg v0.0.0-20250627002230-a0cd033a3ab4
+	github.com/client9/ssg v0.0.0-20250627231738-173ae81c3e74
+	github.com/client9/ssg/meta/email v0.0.0-20250627231738-173ae81c3e74
 	gopkg.in/yaml.v3 v3.0.1
 )
-
-require golang.org/x/net v0.41.0 // indirect

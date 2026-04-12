@@ -2,15 +2,15 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
 	"os"
 
 	"github.com/client9/ssg"
-
-	"encoding/json"
-	"gopkg.in/yaml.v3"
+	"github.com/client9/ssg/meta/email"
+	goyaml "gopkg.in/yaml.v3"
 )
 
 func copyComments(src []byte) []byte {
@@ -19,34 +19,33 @@ func copyComments(src []byte) []byte {
 	for _, line := range lines {
 		if len(line) > 0 && line[0] == '#' {
 			out = append(out, line...)
-			out = append(out, byte('\n'))
+			out = append(out, '\n')
 		}
 	}
 	return out
 }
-func convert(headFrom, headTo ssg.HeadType, src []byte) ([]byte, error) {
-	var meta []byte
-	var body []byte
+
+func convert(headFrom, headTo ssg.MetaHeadType, src []byte) ([]byte, error) {
 	head := make(map[string]any)
 	var err error
 
 	comments := copyComments(src)
 
-	// If Splitter returns a head of nil, it means no metadata of the type
-	// requested was found.  In this case, we skip
-	if meta, body = ssg.Splitter(headFrom, src); meta == nil {
+	// If Splitter returns a nil head, no matching frontmatter was found; skip.
+	meta, body := ssg.Splitter(headFrom, src)
+	if meta == nil {
 		return nil, nil
 	}
 
 	switch headFrom.Name {
 	case "yaml":
-		err = yaml.Unmarshal(meta, &head)
+		err = goyaml.Unmarshal(meta, &head)
 	case "json":
 		err = json.Unmarshal(meta, &head)
 	case "email":
-		err = ssg.EmailUnmarshal(meta, head)
+		err = email.Unmarshal(meta, head)
 	default:
-		panic("Unknown headFrom type of " + headFrom.Name)
+		panic("unknown headFrom type: " + headFrom.Name)
 	}
 	if err != nil {
 		return nil, err
@@ -54,26 +53,25 @@ func convert(headFrom, headTo ssg.HeadType, src []byte) ([]byte, error) {
 
 	switch headTo.Name {
 	case "yaml":
-		meta, err = yaml.Marshal(head)
+		meta, err = goyaml.Marshal(head)
 	case "json":
 		meta, err = json.MarshalIndent(head, "", "    ")
 	case "email":
-		meta, err = ssg.EmailMarshal(head)
-
+		meta, err = email.Marshal(head)
 	default:
-		panic("Unknown headTo type of " + headTo.Name)
+		panic("unknown headTo type: " + headTo.Name)
 	}
 	if err != nil {
 		return nil, err
 	}
 
-	comments = append(comments, byte('\n'))
+	comments = append(comments, '\n')
 	meta = append(comments, meta...)
 
 	return ssg.Joiner(headTo, meta, body), nil
 }
 
-func convertFile(headFrom, headTo ssg.HeadType, file string, overwrite bool) (err error) {
+func convertFile(headFrom, headTo ssg.MetaHeadType, file string, overwrite bool) (err error) {
 	src, err := os.ReadFile(file)
 	if err != nil {
 		return err
@@ -82,8 +80,6 @@ func convertFile(headFrom, headTo ssg.HeadType, file string, overwrite bool) (er
 	if err != nil {
 		return err
 	}
-
-	// skip!
 	if out == nil {
 		log.Printf("skipping %q", file)
 		return nil
@@ -95,22 +91,24 @@ func convertFile(headFrom, headTo ssg.HeadType, file string, overwrite bool) (er
 	return nil
 }
 
-func strToHead(str string) (ssg.HeadType, error) {
+func strToHead(str string) (ssg.MetaHeadType, error) {
 	switch str {
 	case "yaml":
-		return ssg.HeadYaml, nil
+		return ssg.MetaHeadYaml, nil
 	case "json":
-		return ssg.HeadJson, nil
+		return ssg.MetaHeadJson, nil
 	case "email":
-		return ssg.HeadEmail, nil
+		return ssg.MetaHeadEmail, nil
+	case "toml":
+		return ssg.MetaHeadToml, nil
 	}
-	return ssg.HeadType{}, fmt.Errorf("unknown head type of %q", str)
+	return ssg.MetaHeadType{}, fmt.Errorf("unknown head type %q", str)
 }
 
 func main() {
-	var writeFile = flag.Bool("write", false, "over-write file")
-	var frontFrom = flag.String("from", "yaml", "original front matter")
-	var frontTo = flag.String("to", "json", "new front matter")
+	var writeFile = flag.Bool("write", false, "overwrite file in place")
+	var frontFrom = flag.String("from", "yaml", "original frontmatter format")
+	var frontTo = flag.String("to", "json", "target frontmatter format")
 	flag.Parse()
 
 	headFrom, err := strToHead(*frontFrom)
@@ -123,10 +121,9 @@ func main() {
 		fmt.Println(err)
 		return
 	}
-	files := flag.Args()
-	for _, f := range files {
+	for _, f := range flag.Args() {
 		if err := convertFile(headFrom, headTo, f, *writeFile); err != nil {
-			log.Fatalf("Unable to convert %s: %v", f, err)
+			log.Fatalf("unable to convert %s: %v", f, err)
 		}
 	}
 }

@@ -3,7 +3,6 @@ package ssg
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 )
 
 // Splits Input into metadata and the main content/body
@@ -20,17 +19,6 @@ func MetaParseJson(s []byte) (ContentSourceConfig, error) {
 		return nil, err
 	}
 	return meta, nil
-}
-
-// MetaParseEmail parsed input as "email headers" (better name TBD)
-func MetaParseEmail(tx ...ValueTransformer) MetaParser {
-	return func(s []byte) (ContentSourceConfig, error) {
-		meta := ContentSourceConfig{}
-		if err := EmailUnmarshal(s, meta, tx...); err != nil {
-			return nil, fmt.Errorf("unable to parse metadata: %v", err)
-		}
-		return meta, nil
-	}
 }
 
 // Splits a document into a head and body based on various markers.
@@ -77,7 +65,7 @@ func MetaSplitJson(s []byte) ([]byte, []byte) {
 }
 
 func MetaSplitToml(s []byte) ([]byte, []byte) {
-	return Splitter(MetaHeadYaml, s)
+	return Splitter(MetaHeadToml, s)
 }
 
 func MetaSplitYaml(s []byte) ([]byte, []byte) {

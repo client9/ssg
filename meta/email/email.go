@@ -1,4 +1,19 @@
-package ssg
+// Package email provides frontmatter parsing and serialization using
+// email-style headers (RFC 822-inspired key: value pairs).
+//
+// This format is unusual among SSGs but offers a few advantages:
+// it is human-writable without indentation rules, supports comments
+// via lines starting with '#', and requires no external dependencies.
+//
+// Example frontmatter:
+//
+//	Title: My Post
+//	Date: 2024-01-15
+//	Tags: go, ssg, web
+//	# this is a comment
+//
+//	<body content starts after the blank line>
+package email
 
 import (
 	"bufio"
@@ -12,10 +27,17 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/client9/ssg"
 )
 
+// ValueTransformer is a function that can inspect or transform a parsed
+// key/value pair. Return io.EOF to signal the value has been fully handled
+// and no further transformers should run.
 type ValueTransformer func(k string, v any) (any, error)
 
+// AsList returns a ValueTransformer that parses the named key's value
+// as a CSV list rather than a plain string.
 func AsList(key string) ValueTransformer {
 	return func(k string, v any) (any, error) {
 		if k != key {
@@ -29,24 +51,23 @@ func AsList(key string) ValueTransformer {
 	}
 }
 
+// ApplyTransforms runs tx in order against (k, v). If any transformer
+// returns io.EOF, that value is used and iteration stops.
 func ApplyTransforms(k string, v any, tx []ValueTransformer) (any, error) {
 	for _, t := range tx {
-		v, err := t(k, v)
+		nv, err := t(k, v)
 		if errors.Is(err, io.EOF) {
-			// we handled it, done.
-			return v, nil
+			return nv, nil
 		}
 		if err != nil {
-			// something didn't work
 			return nil, err
 		}
-		// didn't process it, keep going
 	}
-
-	// no change
 	return v, nil
 }
 
+// Set writes k/v into kv, applying any transformers first.
+// Supports dotted keys (e.g. "author.name") to create nested maps.
 func Set(kv map[string]any, k string, v any, tx []ValueTransformer) error {
 	v, err := ApplyTransforms(k, v, tx)
 	if err != nil {
@@ -78,11 +99,12 @@ func Set(kv map[string]any, k string, v any, tx []ValueTransformer) error {
 func replaceNewlines(s string) string {
 	return strings.ReplaceAll(s, "\n", " ")
 }
+
 func readCSV(row string) ([]string, error) {
-	// one row, one shot!
 	r := csv.NewReader(strings.NewReader(row))
 	return r.Read()
 }
+
 func writeCSV(parts []string) ([]byte, error) {
 	for i, s := range parts {
 		parts[i] = replaceNewlines(s)
@@ -94,14 +116,16 @@ func writeCSV(parts []string) ([]byte, error) {
 	return out.Bytes(), nil
 }
 
-func EmailUnmarshal(src []byte, out map[string]any, tx ...ValueTransformer) error {
+// Unmarshal parses email-style headers from src into out.
+// Lines starting with '#' are treated as comments and ignored.
+// A line indented with a space or tab continues the previous value.
+func Unmarshal(src []byte, out map[string]any, tx ...ValueTransformer) error {
 	scan := bufio.NewScanner(bytes.NewReader(src))
 	scan.Split(bufio.ScanLines)
 	key := ""
 	prev := ""
 	for scan.Scan() {
 		text := scan.Text()
-		// empty line or comment line
 		if len(text) == 0 || text[0] == '#' {
 			if key != "" {
 				if err := Set(out, key, prev, tx); err != nil {
@@ -120,7 +144,6 @@ func EmailUnmarshal(src []byte, out map[string]any, tx ...ValueTransformer) erro
 			prev += " " + strings.TrimSpace(text)
 			continue
 		}
-		// this is a normal line.
 		if key != "" {
 			if err := Set(out, key, prev, tx); err != nil {
 				return err
@@ -151,34 +174,31 @@ func appendKey(out []byte, prefix, key string) []byte {
 	return out
 }
 
-func EmailMarshal(data map[string]any) ([]byte, error) {
+// Marshal serializes a map[string]any into email-header style output.
+// Nested maps are written with dotted key prefixes (e.g. "author.name: foo").
+func Marshal(data map[string]any) ([]byte, error) {
 	out := make([]byte, 0, 1024)
 	return writeEmailMeta(out, "", data)
 }
 
 func writeEmailMeta(out []byte, prefix string, data map[string]any) ([]byte, error) {
 	keys := slices.Sorted(maps.Keys(data))
-	current := []string{}
-	next := []string{}
+	var current, next []string
 	for _, k := range keys {
-		v := data[k]
-		switch v.(type) {
-		case map[string]any:
+		if _, ok := data[k].(map[string]any); ok {
 			next = append(next, k)
-		default:
+		} else {
 			current = append(current, k)
 		}
 	}
 
 	for _, k := range current {
 		v := data[k]
-
 		switch val := v.(type) {
 		case []any:
-			// yaml uses []any
 			tmp := make([]string, len(val))
-			for i, v := range val {
-				tmp[i] = fmt.Sprintf("%v", v)
+			for i, item := range val {
+				tmp[i] = fmt.Sprintf("%v", item)
 			}
 			out = appendKey(out, prefix, k)
 			row, err := writeCSV(tmp)
@@ -195,8 +215,7 @@ func writeEmailMeta(out []byte, prefix string, data map[string]any) ([]byte, err
 			out = append(out, row...)
 		case string:
 			out = appendKey(out, prefix, k)
-			list := []string{val}
-			row, err := writeCSV(list)
+			row, err := writeCSV([]string{val})
 			if err != nil {
 				return nil, err
 			}
@@ -204,45 +223,45 @@ func writeEmailMeta(out []byte, prefix string, data map[string]any) ([]byte, err
 		case *time.Time:
 			out = appendKey(out, prefix, k)
 			out = append(out, []byte(val.String())...)
-			out = append(out, byte('\n'))
+			out = append(out, '\n')
 		case time.Time:
 			out = appendKey(out, prefix, k)
 			out = append(out, []byte(val.String())...)
-			out = append(out, byte('\n'))
+			out = append(out, '\n')
 		case float32:
 			out = appendKey(out, prefix, k)
 			out = strconv.AppendFloat(out, float64(val), 'g', -1, 32)
-			out = append(out, byte('\n'))
+			out = append(out, '\n')
 		case float64:
 			out = appendKey(out, prefix, k)
 			out = strconv.AppendFloat(out, val, 'g', -1, 64)
-			out = append(out, byte('\n'))
+			out = append(out, '\n')
 		case bool:
 			out = appendKey(out, prefix, k)
 			out = strconv.AppendBool(out, val)
-			out = append(out, byte('\n'))
+			out = append(out, '\n')
 		case int:
 			out = appendKey(out, prefix, k)
 			out = strconv.AppendInt(out, int64(val), 10)
-			out = append(out, byte('\n'))
+			out = append(out, '\n')
 		case int64:
 			out = appendKey(out, prefix, k)
 			out = strconv.AppendInt(out, val, 10)
-			out = append(out, byte('\n'))
+			out = append(out, '\n')
 		case uint:
 			out = appendKey(out, prefix, k)
 			out = strconv.AppendUint(out, uint64(val), 10)
-			out = append(out, byte('\n'))
+			out = append(out, '\n')
 		case uint64:
 			out = appendKey(out, prefix, k)
 			out = strconv.AppendUint(out, val, 10)
-			out = append(out, byte('\n'))
+			out = append(out, '\n')
 		default:
 			return nil, fmt.Errorf("unknown type %T with value %v", v, v)
 		}
 	}
 	if len(current) > 0 {
-		out = append(out, byte('\n'))
+		out = append(out, '\n')
 	}
 
 	for _, k := range next {
@@ -255,4 +274,15 @@ func writeEmailMeta(out []byte, prefix string, data map[string]any) ([]byte, err
 	}
 
 	return out, nil
+}
+
+// Parser returns a MetaParser that reads frontmatter as email-style headers.
+func Parser(tx ...ValueTransformer) ssg.MetaParser {
+	return func(s []byte) (ssg.ContentSourceConfig, error) {
+		meta := ssg.ContentSourceConfig{}
+		if err := Unmarshal(s, meta, tx...); err != nil {
+			return nil, fmt.Errorf("unable to parse metadata: %v", err)
+		}
+		return meta, nil
+	}
 }
