@@ -3,7 +3,7 @@ package yaml
 
 import (
 	"github.com/client9/ssg"
-	goyaml "gopkg.in/yaml.v3"
+	goyaml "go.yaml.in/yaml/v4"
 )
 
 // Parser returns a MetaParser that reads frontmatter as YAML.
