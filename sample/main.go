@@ -34,45 +34,40 @@ func HTMLPretty(wr io.Writer, source io.Reader, data any) error {
 }
 
 func main() {
-
 	// various golang template functions
 	fns := template.FuncMap{
 		"upper": strings.ToUpper,
 		"elink": elink,
 	}
 
-	// config and pipeline
-	conf := ssg.SiteConfig{
-		ContentDir: "content",
+	// file loading config
+	loadConf := ssg.LoadConfig{
+		ContentDir:   "content",
 		BaseTemplate: "baseof.html",
-		MetaSplit: ssg.MetaSplitJson,
-		MetaParser: ssg.MetaParseJson,
-		InputExt: ".html",
-		OutputExt: ".html",
-		IndexSource: "index.html",
-		IndexDest: "index.html",
-		Pipeline: []ssg.Renderer{
-			ssg.NewTemplateMacro(fns),
-			htmlclean.Render,
-			ssg.Must(ssg.NewPageRender("layout", fns)),
-			HTMLPretty,
-			ssg.WriteOutput("public"),
-		},
+		MetaSplit:    ssg.MetaSplitJson,
+		MetaParser:   ssg.MetaParseJson,
+		InputExt:     ".html",
+		OutputExt:    ".html",
+		IndexSource:  "index.html",
+		IndexDest:    "index.html",
 	}
 
-	//  create array of pages
-	//  One may manually create various pages
-	//  from database or something else
+	// rendering pipeline
+	pipeline := []ssg.Renderer{
+		ssg.NewTemplateMacro(fns),
+		htmlclean.Render,
+		ssg.Must(ssg.NewPageRender("layout", fns)),
+		HTMLPretty,
+		ssg.WriteOutput("public"),
+	}
 
 	pages := []ssg.ContentSourceConfig{}
- 
-	// load in content
-	if err := ssg.LoadContent(conf, &pages); err != nil {
+
+	if err := ssg.LoadContent(loadConf, &pages); err != nil {
 		log.Fatalf("load content failed: %s", err)
 	}
 
-	// do it
-	if err := ssg.Main2(conf, &pages); err != nil {
+	if err := ssg.Render(pipeline, pages, nil); err != nil {
 		log.Fatalf("Main failed: %s", err)
 	}
 }

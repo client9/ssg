@@ -8,57 +8,55 @@ import (
 	"strings"
 )
 
-type SiteConfig struct {
+// LoadConfig holds parameters for LoadContent. It is concerned only with
+// finding and parsing content files — it has no role in rendering.
+type LoadConfig struct {
+	ContentDir   string
 	BaseTemplate string
 
-	ContentDir string
-
-	MetaSplit  ContentSplitter
+	MetaSplit ContentSplitter
 	MetaParser MetaParser
 
-	InputExt    string // ".md"
-	OutputExt   string // ".html"
-	IndexSource string // "index.md"
-	IndexDest   string // "index.html"
-
-	Pipeline []Renderer
+	InputExt    string // e.g. ".md"
+	OutputExt   string // e.g. ".html"
+	IndexSource string // e.g. "index.md"
+	IndexDest   string // e.g. "index.html"
 }
 
-// TODO: name change
-// TODO: make parallel
-func Main2(config SiteConfig, pages *[]ContentSourceConfig) error {
-
-	for _, p := range *pages {
-		// give every page the global config
-		p["Site"] = config
-
-		// initial source is in []byte
+// Render renders all pages through pipeline.
+//
+// globals contains site-wide data (navigation menus, tag indexes, etc.)
+// computed after LoadContent. Each entry is merged into the page's
+// ContentSourceConfig before rendering. Page frontmatter wins on key
+// collision — globals act as defaults, not overrides. globals may be nil.
+func Render(pipeline []Renderer, pages []ContentSourceConfig, globals map[string]any) error {
+	for _, p := range pages {
+		for k, v := range globals {
+			if _, exists := p[k]; !exists {
+				p[k] = v
+			}
+		}
 		source := p["Content"].([]byte)
-
-		if err := MultiRender(config.Pipeline, source, p); err != nil {
+		if err := MultiRender(pipeline, source, p); err != nil {
 			return fmt.Errorf("%s: %w", p.InputFile(), err)
 		}
 	}
-
 	return nil
 }
 
-func LoadContent(config SiteConfig, out *[]ContentSourceConfig) error {
-
-	contentDir := config.ContentDir
+// LoadContent walks conf.ContentDir, parses each matching file's frontmatter,
+// and appends a ContentSourceConfig to out for each page found.
+func LoadContent(conf LoadConfig, out *[]ContentSourceConfig) error {
+	contentDir := conf.ContentDir
 	if contentDir == "" {
 		return fmt.Errorf("ContentDir in config is empty")
 	}
-	//log.Printf("In content dir: %s", contentDir)
 
 	err := filepath.WalkDir(contentDir, func(path string, d fs.DirEntry, err error) error {
-		//log.Printf("LoadContent: got %s", path)
-		// not sure how this works
 		if err != nil {
 			return fmt.Errorf("LoadContent walkdir error @ %q: %v", path, err)
 		}
 
-		// do not look at linux/mac dot dirs
 		if d.IsDir() {
 			if strings.HasPrefix(d.Name(), ".") {
 				return filepath.SkipDir
@@ -66,48 +64,35 @@ func LoadContent(config SiteConfig, out *[]ContentSourceConfig) error {
 			return nil
 		}
 
-		//
-		if !strings.HasSuffix(path, config.InputExt) {
+		if !strings.HasSuffix(path, conf.InputExt) {
 			return nil
 		}
 
-		//log.Printf("LoadContent: reading %s", path)
 		raw, err := os.ReadFile(path)
 		if err != nil {
 			return fmt.Errorf("LoadContent: reading page file %s failed: %w", path, err)
 		}
 
-		head, body := config.MetaSplit(raw)
-		// TODO, if head is nil, then we should just copy
-		// i.e.  if doc is "{\n}body" that's fine, keep going
-		// i.e.  but if doc is "body", then just copy.
+		head, body := conf.MetaSplit(raw)
 
-		page, err := config.MetaParser(head)
+		page, err := conf.MetaParser(head)
 		if err != nil {
 			return fmt.Errorf("unable to parse front matter: %v", err)
 		}
 
 		if _, ok := page["TemplateName"]; !ok {
-			page["TemplateName"] = config.BaseTemplate
+			page["TemplateName"] = conf.BaseTemplate
 		}
 
-		// This name change should be a function
-
-		// have: content/foo/bar/page.sh
-		// want: foo/bar/page/index.html
 		if _, ok := page["OutputFile"]; !ok {
 			s := path[len(contentDir)+1:]
 			s = strings.TrimSuffix(s, filepath.Ext(s))
 
-			// in same dir --> index.md --> index.html
-			// or make dir --> foo.md --> foo/index.html
-
-			if d.Name() == config.IndexSource && config.IndexDest != "" {
-				s += config.OutputExt
+			if d.Name() == conf.IndexSource && conf.IndexDest != "" {
+				s += conf.OutputExt
 			} else {
-				s = filepath.Join(s, config.IndexDest)
+				s = filepath.Join(s, conf.IndexDest)
 			}
-			//log.Printf("Setting outfile to %s", s)
 			page["OutputFile"] = s
 		}
 

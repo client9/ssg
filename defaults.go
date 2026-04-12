@@ -1,34 +1,37 @@
 package ssg
 
-func ConfigDefault(config *SiteConfig) {
-	if config.ContentDir == "" {
-		config.ContentDir = "content"
+// LoadDefaults fills in zero-value fields of conf with sensible defaults
+// for a standard HTML site.
+func LoadDefaults(conf *LoadConfig) {
+	if conf.ContentDir == "" {
+		conf.ContentDir = "content"
 	}
-	if config.MetaSplit == nil {
-		config.MetaSplit = MetaSplitJson
+	if conf.MetaSplit == nil {
+		conf.MetaSplit = MetaSplitJson
 	}
-	if config.MetaParser == nil {
-		config.MetaParser = MetaParseJson
+	if conf.MetaParser == nil {
+		conf.MetaParser = MetaParseJson
 	}
-	if config.OutputExt == "" {
-		config.OutputExt = ".html"
+	if conf.OutputExt == "" {
+		conf.OutputExt = ".html"
 	}
-	if config.InputExt == "" {
-		config.InputExt = ".html"
+	if conf.InputExt == "" {
+		conf.InputExt = ".html"
 	}
-	if config.IndexSource == "" {
-		config.IndexSource = "index.html"
+	if conf.IndexSource == "" {
+		conf.IndexSource = "index.html"
 	}
-	if config.IndexDest == "" {
-		config.IndexDest = "index.html"
+	if conf.IndexDest == "" {
+		conf.IndexDest = "index.html"
 	}
-	if config.BaseTemplate == "" {
-		config.BaseTemplate = "baseof.html"
+	if conf.BaseTemplate == "" {
+		conf.BaseTemplate = "baseof.html"
 	}
 }
 
-// Default ContentSource -- it's just a map any with some specific
-// accessors
+// ContentSourceConfig holds metadata and content for a single page.
+// It is a plain map so that frontmatter parsers, synthetic page builders,
+// and templates can all read and write it without a fixed schema.
 type ContentSourceConfig map[string]any
 
 func (csc ContentSourceConfig) TemplateName() string {
@@ -37,18 +40,21 @@ func (csc ContentSourceConfig) TemplateName() string {
 	}
 	return ""
 }
+
 func (csc ContentSourceConfig) OutputFile() string {
 	if val, ok := csc["OutputFile"]; ok {
 		return val.(string)
 	}
 	return ""
 }
+
 func (csc ContentSourceConfig) InputFile() string {
 	if val, ok := csc["InputFile"]; ok {
 		return val.(string)
 	}
 	return ""
 }
+
 func (csc ContentSourceConfig) Get(key string) string {
 	if val, ok := csc[key]; ok {
 		if sval, ok := val.(string); ok {
