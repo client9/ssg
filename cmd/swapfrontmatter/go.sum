@@ -1,7 +1,7 @@
-github.com/client9/ssg v0.0.0-20250627002230-a0cd033a3ab4 h1:Gho0z93CLikinn70EPKm57y0Ke93McDDSeUrAxgSR8k=
-github.com/client9/ssg v0.0.0-20250627002230-a0cd033a3ab4/go.mod h1:UEuRp8D4V5PNgQwl2jfiYtSdnWswVRWnX16nX54jcTY=
-golang.org/x/net v0.41.0 h1:vBTly1HeNPEn3wtREYfy4GZ/NECgw2Cnl+nK6Nz3uvw=
-golang.org/x/net v0.41.0/go.mod h1:B/K4NNqkfmg07DQYrbwvSluqCJOOXwUjeb/5lOisjbA=
+github.com/client9/ssg v0.0.0-20260412004643-497cf07fcc54 h1:3DCEOrM+HDiZcZQEwRPnqBwSe8MAQC4LH0J99Iv53ew=
+github.com/client9/ssg v0.0.0-20260412004643-497cf07fcc54/go.mod h1:LTTFnuKrTUzzgSaer9mqcT2GZ1Xs8ERmwEzJ8O9q4j4=
+github.com/client9/ssg/meta/email v0.0.0-20260412004643-497cf07fcc54 h1:wgu4nWiqBosP8LkzSQH3xU2or5d7V/wOCgf8Fz+v0AA=
+github.com/client9/ssg/meta/email v0.0.0-20260412004643-497cf07fcc54/go.mod h1:1zPw8JXlfaTR+dMBMi52SmEIDNlbAqt8WXcVmKXFbv0=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405 h1:yhCVgyC4o1eVCa2tZl7eS0r+SDo693bJlVdllGtEeKM=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=

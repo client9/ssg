@@ -1,3 +1,7 @@
+github.com/client9/ssg v0.0.0-20260412004643-497cf07fcc54 h1:3DCEOrM+HDiZcZQEwRPnqBwSe8MAQC4LH0J99Iv53ew=
+github.com/client9/ssg v0.0.0-20260412004643-497cf07fcc54/go.mod h1:LTTFnuKrTUzzgSaer9mqcT2GZ1Xs8ERmwEzJ8O9q4j4=
+github.com/client9/ssg/render/htmlclean v0.0.0-20260412004643-497cf07fcc54 h1:EDWiv65S3PBuSyBXpi8umhfo1gE6cjgDOIykMr9Nv4g=
+github.com/client9/ssg/render/htmlclean v0.0.0-20260412004643-497cf07fcc54/go.mod h1:xu9s4AiYTxKKRpOa6tPTt3IfkO+MM05KQiBB8bjPuBI=
 github.com/yosssi/gohtml v0.0.0-20201013000340-ee4748c638f4 h1:0sw0nJM544SpsihWx1bkXdYLQDlzRflMgFJQ4Yih9ts=
 github.com/yosssi/gohtml v0.0.0-20201013000340-ee4748c638f4/go.mod h1:+ccdNT0xMY1dtc5XBxumbYfOUhmduiGudqaDgD2rVRE=
 golang.org/x/net v0.41.0 h1:vBTly1HeNPEn3wtREYfy4GZ/NECgw2Cnl+nK6Nz3uvw=
