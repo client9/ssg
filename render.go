@@ -5,7 +5,6 @@ import (
 	"io"
 )
 
-// "Template Macro"  processes source and writing output
 //
 //	"data" is optional supplemental data.  It is just passed on to the
 //
@@ -40,3 +39,11 @@ func Identity(wr io.Writer, src io.Reader, data any) error {
 	_, err := io.Copy(wr, src)
 	return err
 }
+
+func Must(r Renderer, err error) Renderer {
+        if err != nil {
+                panic(err)
+        }
+        return r
+}
+
