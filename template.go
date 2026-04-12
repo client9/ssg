@@ -6,7 +6,7 @@ import (
 	"io/fs"
 	"path/filepath"
 	"strings"
-	"text/template"
+	"html/template"
 )
 
 // NewPageRender loads HTML templates from tdir and returns a Renderer that
@@ -42,8 +42,10 @@ func NewPageRender(tdir string, fns template.FuncMap) (Renderer, error) {
 			return err
 		}
 
-		// Store the rendered body so templates can access it via {{.Content}}.
-		s["Content"] = string(src)
+		// Store the rendered body as template.HTML so html/template does not
+		// escape it — the content is already trusted, rendered markup.
+		// All other page metadata (Title, Author, etc.) is auto-escaped.
+		s["Content"] = template.HTML(src) //nolint:gosec
 
 		return tmpl.ExecuteTemplate(wr, s.TemplateName(), s)
 	}, nil
