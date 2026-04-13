@@ -91,7 +91,7 @@ func TestTruncate(t *testing.T) {
 		{"héllo", 4, "hél…"},           // rune-aware
 	}
 	for _, tt := range tests {
-		got := truncate(tt.in, tt.n)
+		got := Truncate(tt.in, tt.n)
 		if got != tt.want {
 			t.Errorf("truncate(%q, %d) = %q, want %q", tt.in, tt.n, got, tt.want)
 		}

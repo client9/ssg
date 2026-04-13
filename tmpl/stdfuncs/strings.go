@@ -44,7 +44,7 @@ func stringFuncMap() template.FuncMap {
 		"lenRunes": LenRunes,
 
 		// Truncate with ellipsis
-		"truncate": truncate,
+		"truncate": Truncate,
 	}
 }
 
@@ -103,13 +103,13 @@ func FirstUpper(s string) string {
 	return string(unicode.ToUpper(r)) + s[size:]
 }
 
-// truncate shortens s to at most n runes. If s is longer it is cut and an
+// Truncate shortens s to at most n runes. If s is longer it is cut and an
 // ellipsis ("…") is appended. n includes the ellipsis, so the result is
 // always at most n runes long.
 //
-//	truncate("hello world", 8) → "hello w…"
-//	truncate("hi", 8)          → "hi"
-func truncate(s string, n int) string {
+//	truncate "hello world" 8 → "hello w…"
+//	truncate "hi" 8          → "hi"
+func Truncate(s string, n int) string {
 	if n <= 0 {
 		return ""
 	}

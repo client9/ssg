@@ -350,6 +350,24 @@ func ExampleSafeJSStr() {
 
 // ---- strings ----
 
+func ExampleFirstUpper() {
+	fmt.Println(stdfuncs.FirstUpper("go"))
+	fmt.Println(stdfuncs.FirstUpper("hello world"))
+	fmt.Println(stdfuncs.FirstUpper("élan"))
+	// Output:
+	// Go
+	// Hello world
+	// Élan
+}
+
+func ExampleTruncate() {
+	fmt.Println(stdfuncs.Truncate("hello world", 8))
+	fmt.Println(stdfuncs.Truncate("hi", 8))
+	// Output:
+	// hello w…
+	// hi
+}
+
 func ExampleCapitalize() {
 	fmt.Println(stdfuncs.Capitalize("hello world"))
 	fmt.Println(stdfuncs.Capitalize("NASA"))
