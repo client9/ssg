@@ -6,25 +6,19 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/bmatcuk/doublestar/v4"
 )
 
 // LoadConfig holds parameters for LoadContent. It is concerned only with
 // finding and parsing content files — it has no role in rendering.
 type LoadConfig struct {
-	ContentDir   string
-	BaseTemplate string
+	ContentDir string
 
-	MetaSplit  ContentSplitter
-	MetaParser MetaParser
-
-	// InputExt filters which files LoadContent processes (e.g. ".md", ".html").
-	InputExt string
-
-	// PathTransformer maps each file's relative input path to its output path.
-	// Return an empty string to skip the file.
-	// Use CleanURLs or UglyURLs; wrap with SlugNormalize to compose.
-	// LoadDefaults sets this to CleanURLs(InputExt, ".html") if nil.
-	PathTransformer PathTransformer
+	// Rules are tried in order against each file's relative path.
+	// The first matching Rule's Loader is called. Files that match no
+	// rule are skipped. Use doublestar glob syntax: "**/*.md", "posts/*.html".
+	Rules []Rule
 }
 
 // Render renders all pages through pipeline.
@@ -40,7 +34,7 @@ func Render(pipeline []Renderer, pages []ContentSourceConfig, globals map[string
 				p[k] = v
 			}
 		}
-		source := p["Content"].([]byte)
+		source, _ := p["Content"].([]byte)
 		if err := MultiRender(pipeline, source, p); err != nil {
 			return fmt.Errorf("%s: %w", p.InputFile(), err)
 		}
@@ -48,16 +42,17 @@ func Render(pipeline []Renderer, pages []ContentSourceConfig, globals map[string
 	return nil
 }
 
-// LoadContent walks conf.ContentDir, parses each matching file's frontmatter,
-// and appends a ContentSourceConfig to out for each page found.
+// LoadContent walks conf.ContentDir, matches each file against conf.Rules in
+// order, and appends the resulting pages to out. Files matching no rule are
+// skipped. Directories prefixed with "." are skipped entirely.
 func LoadContent(conf LoadConfig, out *[]ContentSourceConfig) error {
 	if conf.ContentDir == "" {
 		return fmt.Errorf("ContentDir in config is empty")
 	}
 
-	err := filepath.WalkDir(conf.ContentDir, func(path string, d fs.DirEntry, err error) error {
+	return filepath.WalkDir(conf.ContentDir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
-			return fmt.Errorf("LoadContent walkdir error @ %q: %v", path, err)
+			return fmt.Errorf("LoadContent: walking %q: %v", path, err)
 		}
 
 		if d.IsDir() {
@@ -67,44 +62,46 @@ func LoadContent(conf LoadConfig, out *[]ContentSourceConfig) error {
 			return nil
 		}
 
-		if !strings.HasSuffix(path, conf.InputExt) {
-			return nil
+		relPath := filepath.ToSlash(path[len(conf.ContentDir)+1:])
+
+		loader, err := matchRules(conf.Rules, relPath)
+		if err != nil {
+			return fmt.Errorf("LoadContent: bad pattern matching %q: %w", relPath, err)
+		}
+		if loader == nil {
+			return nil // no rule matched
 		}
 
 		raw, err := os.ReadFile(path)
 		if err != nil {
-			return fmt.Errorf("LoadContent: reading page file %s failed: %w", path, err)
+			return fmt.Errorf("LoadContent: reading %s: %w", path, err)
 		}
 
-		head, body := conf.MetaSplit(raw)
-
-		page, err := conf.MetaParser(head)
+		page, err := loader(relPath, raw)
 		if err != nil {
-			return fmt.Errorf("unable to parse front matter: %v", err)
+			return fmt.Errorf("%s: %w", path, err)
+		}
+		if page == nil {
+			return nil // loader signalled skip
 		}
 
-		// Resolve OutputFile: frontmatter wins, then PathTransformer.
-		outputFile := page.OutputFile()
-		if outputFile == "" {
-			relPath := path[len(conf.ContentDir)+1:]
-			outputFile = conf.PathTransformer(relPath)
-			if outputFile == "" {
-				return nil // transformer signalled skip
-			}
-		}
-
-		// Resolve TemplateName: frontmatter wins, then BaseTemplate.
-		templateName := page.TemplateName()
-		if templateName == "" {
-			templateName = conf.BaseTemplate
-		}
-
-		p := NewPage(outputFile, templateName, page)
-		p["InputFile"] = path
-		p["Content"] = body
-		*out = append(*out, p)
+		page["InputFile"] = path
+		*out = append(*out, page)
 		return nil
 	})
+}
 
-	return err
+// matchRules returns the first Loader whose Pattern matches relPath, or nil if
+// none match. Returns an error only if a pattern is malformed.
+func matchRules(rules []Rule, relPath string) (FileLoader, error) {
+	for _, r := range rules {
+		ok, err := doublestar.Match(r.Pattern, relPath)
+		if err != nil {
+			return nil, fmt.Errorf("pattern %q: %w", r.Pattern, err)
+		}
+		if ok {
+			return r.Loader, nil
+		}
+	}
+	return nil, nil
 }

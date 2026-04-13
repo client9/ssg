@@ -8,8 +8,14 @@
 {{ end -}}
 </head>
 <body>
+<nav><a href="/tags/index.html">All Tags</a></nav>
 {{- block "main" . -}}
 {{ .Content }}
+{{- with .Tags -}}
+<p>Tags:
+{{- range . }} <a href="/tags/{{ . }}/index.html">{{ . }}</a>{{ end }}
+</p>
+{{- end -}}
 {{- end -}}
 </body>
 </html>

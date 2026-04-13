@@ -1,0 +1,9 @@
+{{ template "baseof.html" . }}
+{{- define "main" -}}
+<h1>All Tags</h1>
+<ul>
+{{- range .Tags }}
+  <li><a href="/tags/{{ .Name }}/index.html">{{ .Name }} ({{ .Count }})</a></li>
+{{- end }}
+</ul>
+{{- end -}}

@@ -2,26 +2,10 @@ package ssg
 
 import "maps"
 
-// LoadDefaults fills in zero-value fields of conf with sensible defaults
-// for a standard HTML site with clean URLs.
+// LoadDefaults fills in zero-value fields of conf with sensible defaults.
 func LoadDefaults(conf *LoadConfig) {
 	if conf.ContentDir == "" {
 		conf.ContentDir = "content"
-	}
-	if conf.MetaSplit == nil {
-		conf.MetaSplit = MetaSplitJson
-	}
-	if conf.MetaParser == nil {
-		conf.MetaParser = MetaParseJson
-	}
-	if conf.InputExt == "" {
-		conf.InputExt = ".html"
-	}
-	if conf.BaseTemplate == "" {
-		conf.BaseTemplate = "baseof.html"
-	}
-	if conf.PathTransformer == nil {
-		conf.PathTransformer = CleanURLs(conf.InputExt, ".html")
 	}
 }
 

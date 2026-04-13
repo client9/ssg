@@ -1,0 +1,10 @@
+{{ template "baseof.html" . }}
+{{- define "main" -}}
+<h1>Posts tagged "{{ .Tag }}"</h1>
+<ul>
+{{- range .Pages }}
+  <li><a href="/{{ .OutputFile }}">{{ .Title }}</a></li>
+{{- end }}
+</ul>
+<p><a href="/tags/index.html">← All tags</a></p>
+{{- end -}}

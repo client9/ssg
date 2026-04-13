@@ -10,6 +10,7 @@ import (
 	"text/template"
 
 	"github.com/client9/ssg"
+	metajson "github.com/client9/ssg/meta/json"
 	"github.com/client9/ssg/render/htmlclean"
 	"github.com/yosssi/gohtml"
 )
@@ -63,12 +64,10 @@ func main() {
 	}
 
 	loadConf := ssg.LoadConfig{
-		ContentDir:      "content",
-		BaseTemplate:    "baseof.html",
-		MetaSplit:       ssg.MetaSplitJson,
-		MetaParser:      ssg.MetaParseJson,
-		InputExt:        ".html",
-		PathTransformer: ssg.CleanURLs(".html", ".html"),
+		ContentDir: "content",
+		Rules: []ssg.Rule{
+			{Pattern: "**/*.html", Loader: ssg.FrontmatterLoader(metajson.Loader, "baseof.html", ssg.CleanURLs(".html", ".html"))},
+		},
 	}
 
 	pipeline := []ssg.Renderer{

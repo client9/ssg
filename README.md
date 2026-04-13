@@ -1,14 +1,22 @@
 # ssg
 
-A composable static site generator toolkit for Go.
+A document transformation pipeline and composable static site generator toolkit for Go.
 
 `ssg` provides the building blocks for a content pipeline: load pages from files
 (or any source), enrich them with cross-page data (navigation, taxonomies), and
-render them through a chain of transformations to produce HTML output.
+render them through a chain of transformations to produce HTML output or whatever you want.
 
 ```
 [source]  →  []ContentSourceConfig  →  Render(pipeline, pages, globals)
 ```
+
+## Why? And Alternatives
+
+There are many static site generators!
+
+The most focus on a "no programming required" model which limits extensibility
+
+The closest model is [metalsmith](https://metalsmith.io)
 
 ## Core concepts
 

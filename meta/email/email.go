@@ -276,13 +276,32 @@ func writeEmailMeta(out []byte, prefix string, data map[string]any) ([]byte, err
 	return out, nil
 }
 
-// Parser returns a MetaParser that reads frontmatter as email-style headers.
-func Parser(tx ...ValueTransformer) ssg.MetaParser {
-	return func(s []byte) (ssg.ContentSourceConfig, error) {
-		meta := ssg.ContentSourceConfig{}
-		if err := Unmarshal(s, meta, tx...); err != nil {
-			return nil, fmt.Errorf("unable to parse metadata: %v", err)
+// Loader is the default MetaLoader for email-style frontmatter with no
+// value transformers. Use NewLoader to apply transformers such as AsList.
+var Loader ssg.MetaLoader = NewLoader()
+
+// NewLoader returns a MetaLoader for email-style frontmatter, applying tx in
+// order to each parsed key/value pair.
+//
+//	email.NewLoader(email.AsList("Tags"))
+func NewLoader(tx ...ValueTransformer) ssg.MetaLoader {
+	return func(raw []byte) (ssg.ContentSourceConfig, []byte, error) {
+		head, body := split(raw)
+		if head == nil {
+			return ssg.ContentSourceConfig{}, body, nil
 		}
-		return meta, nil
+		meta := ssg.ContentSourceConfig{}
+		if err := Unmarshal(head, meta, tx...); err != nil {
+			return nil, nil, fmt.Errorf("unable to parse metadata: %v", err)
+		}
+		return meta, body, nil
 	}
+}
+
+func split(raw []byte) (head, body []byte) {
+	head, body, found := bytes.Cut(raw, []byte("\n\n\n"))
+	if !found {
+		return nil, raw
+	}
+	return head, body
 }
