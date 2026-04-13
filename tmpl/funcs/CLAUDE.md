@@ -31,14 +31,14 @@ Each category lives in its own file with an unexported `*FuncMap()` helper regis
 
 | File | Category | Key functions |
 |---|---|---|
-| `strings.go` | Strings | `lower`, `upper`, `trim*`, `contains`, `split`, `join`, `truncate`, … |
-| `math.go` | Math | `add`, `sub`, `mul`, `div`, `mod`, `abs`, `ceil`, `floor`, `round`, `min`, `max`, `pow`, `modBool` |
+| `strings.go` | Strings | `lower`, `upper`, `trim*`, `contains`, `split`, `join`, `replace`, `replaceAll`, `lenRunes`, `truncate`, `firstUpper`, `capitalize` |
+| `math.go` | Math | `add`, `sub`, `mul`, `div`, `mod`, `abs`, `ceil`, `floor`, `round`, `min`, `max`, `pow`, `modBool`, `clamp` |
 | `path.go` | Path | `pathBase`, `pathDir`, `pathExt`, `pathJoin`, `pathClean` |
 | `safe.go` | Safe types / URL | `safeHTML`, `safeCSS`, `safeJS`, `safeURL`, …, `urlEncode`, `urlPathEscape` |
+| `encoding.go` | Encoding | `jsonify` |
+| `cast.go` | Cast | `toInt`, `toFloat` |
+| `time.go` | Time | `now`, `parseTime` |
 | `collections.go` | Collections | `list`, `dict`, `seq`, `first`, `last`, `take`, `drop`, `sort`, `sortNum`, `where`, `keys`, `values`, `merge`, `in`, `default`, `cond`, … |
-
-Planned but not yet implemented: `time.go`, `cast.go`, `encoding.go`, and string additions
-(`firstUpper`, `chomp`, `replace`, `replaceRE`). See TODO.md.
 
 ## Argument order convention
 
@@ -46,8 +46,10 @@ Planned but not yet implemented: `time.go`, `cast.go`, `encoding.go`, and string
 templates. Do not use pipeline-optimized order (subject last). Single-argument functions
 (`upper`, `lower`, `trim`) work in pipelines regardless.
 
-**Exception — `take` and `drop`:** these are collection-first (`take $list 5`, `drop $list 3`)
-matching the convention, which also happens to be the natural English reading ("take from list, 5").
+`take` and `drop` are collection-first (`take $list 5`, `drop $list 3`) — consistent with the
+convention and natural English reading.
+
+`clamp` is value-first (`clamp $val $min $max`) — the thing being constrained comes first.
 
 ## Adding functions
 
@@ -58,15 +60,15 @@ in `FuncMap()`.
 ### Math functions
 
 All math functions accept `any` and return `(float64, error)` — except `modBool` which returns
-`(bool, error)`, `min`/`max` which are variadic `(...any) (float64, error)`, and `pow` which
-takes two `any` args. Use `toFloat64` for numeric conversion — it handles all integer widths,
-both float sizes, and numeric strings. Do not add integer-returning variants; callers use
-`printf` for formatting.
+`(bool, error)`, `min`/`max` which are variadic `(...any) (float64, error)`, and `pow`/`clamp`
+which take two and three `any` args respectively. Use `toFloat64` for numeric conversion — it
+handles all integer widths, both float sizes, and numeric strings. Do not add integer-returning
+variants; callers use `printf` for formatting.
 
 ### String functions
 
 Prefer direct assignment of stdlib functions (`strings.ToLower`, etc.) over wrappers. Only
-write a custom function when stdlib has no direct equivalent (e.g. `truncate`).
+write a custom function when stdlib has no direct equivalent (e.g. `truncate`, `firstUpper`).
 
 ### Collection functions
 
@@ -78,6 +80,8 @@ for sorting (stable, preserves relative order of equal elements).
 The `isZero(v any) bool` helper (in `collections.go`) is the shared definition of "zero value"
 used by both `default` and `cond`.
 
+All collection functions return new structures — never mutate inputs.
+
 ## Documentation
 
 Individual functions registered in a `template.FuncMap` are typed as `any` and do not appear
@@ -86,7 +90,7 @@ function (e.g. `Truncate`, `Sort`) that is both registered in the map and callab
 from Go. This surfaces the signature on pkg.go.dev and makes the function usable without a FuncMap.
 
 Pair each exported function with an `Example` test in `example_test.go` — these render on
-pkg.go.dev and serve as runnable documentation. This is not yet done; see TODO.md.
+pkg.go.dev and serve as runnable documentation.
 
 ## Naming
 
