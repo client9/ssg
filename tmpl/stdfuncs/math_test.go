@@ -83,19 +83,19 @@ func TestMathOps(t *testing.T) {
 }
 
 func TestMathDiv_byZero(t *testing.T) {
-	if _, err := mathDiv(1, 0); err == nil {
+	if _, err := Div(1, 0); err == nil {
 		t.Error("expected error for div by zero")
 	}
 }
 
 func TestMathMod_byZero(t *testing.T) {
-	if _, err := mathMod(5, 0); err == nil {
+	if _, err := Mod(5, 0); err == nil {
 		t.Error("expected error for mod by zero")
 	}
 }
 
 func TestMathOps_mixedTypes(t *testing.T) {
-	got, err := mathDiv(float64(7), int(2))
+	got, err := Div(float64(7), int(2))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

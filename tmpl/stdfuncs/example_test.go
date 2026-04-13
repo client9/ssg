@@ -10,6 +10,70 @@ import (
 
 // ---- math ----
 
+func ExampleAdd() {
+	v, _ := stdfuncs.Add(3, 4)
+	fmt.Println(v)
+	// Output:
+	// 7
+}
+
+func ExampleSub() {
+	v, _ := stdfuncs.Sub(10, 3)
+	fmt.Println(v)
+	// Output:
+	// 7
+}
+
+func ExampleMul() {
+	v, _ := stdfuncs.Mul(3, 4)
+	fmt.Println(v)
+	// Output:
+	// 12
+}
+
+func ExampleDiv() {
+	v, _ := stdfuncs.Div(10, 4)
+	fmt.Println(v)
+	// Output:
+	// 2.5
+}
+
+func ExampleMod() {
+	v, _ := stdfuncs.Mod(10, 3)
+	fmt.Println(v)
+	// Output:
+	// 1
+}
+
+func ExampleAbs() {
+	v, _ := stdfuncs.Abs(-7)
+	fmt.Println(v)
+	// Output:
+	// 7
+}
+
+func ExampleCeil() {
+	v, _ := stdfuncs.Ceil(1.2)
+	fmt.Println(v)
+	// Output:
+	// 2
+}
+
+func ExampleFloor() {
+	v, _ := stdfuncs.Floor(1.9)
+	fmt.Println(v)
+	// Output:
+	// 1
+}
+
+func ExampleRound() {
+	lo, _ := stdfuncs.Round(1.4)
+	hi, _ := stdfuncs.Round(1.5)
+	fmt.Println(lo, hi)
+	// Output:
+	// 1 2
+}
+
 func ExampleClamp() {
 	within, _ := stdfuncs.Clamp(5, 1, 10)
 	below, _ := stdfuncs.Clamp(0, 1, 10)
@@ -304,6 +368,44 @@ func ExampleCond() {
 	// no
 }
 
+// ---- path ----
+
+func ExamplePathBase() {
+	fmt.Println(stdfuncs.PathBase("/a/b/c.html"))
+	fmt.Println(stdfuncs.PathBase("/a/b/"))
+	// Output:
+	// c.html
+	// b
+}
+
+func ExamplePathDir() {
+	fmt.Println(stdfuncs.PathDir("/a/b/c.html"))
+	// Output:
+	// /a/b
+}
+
+func ExamplePathExt() {
+	fmt.Println(stdfuncs.PathExt("index.html"))
+	fmt.Println(stdfuncs.PathExt("Makefile"))
+	// Output:
+	// .html
+	//
+}
+
+func ExamplePathJoin() {
+	fmt.Println(stdfuncs.PathJoin("/a", "b", "c.html"))
+	// Output:
+	// /a/b/c.html
+}
+
+func ExamplePathClean() {
+	fmt.Println(stdfuncs.PathClean("/a/b/../c"))
+	fmt.Println(stdfuncs.PathClean("a//b"))
+	// Output:
+	// /a/c
+	// a/b
+}
+
 // ---- safe types ----
 
 func ExampleSafeHTML() {
@@ -332,6 +434,22 @@ func ExampleSafeJS() {
 	fmt.Println(v)
 	// Output:
 	// alert('hi')
+}
+
+func ExampleURLEncode() {
+	fmt.Println(stdfuncs.URLEncode("hello world"))
+	fmt.Println(stdfuncs.URLEncode("a=1&b=2"))
+	// Output:
+	// hello+world
+	// a%3D1%26b%3D2
+}
+
+func ExampleURLPathEscape() {
+	fmt.Println(stdfuncs.URLPathEscape("hello world"))
+	fmt.Println(stdfuncs.URLPathEscape("a/b"))
+	// Output:
+	// hello%20world
+	// a%2Fb
 }
 
 func ExampleSafeHTMLAttr() {

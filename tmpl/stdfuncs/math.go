@@ -10,15 +10,15 @@ import (
 
 func mathFuncMap() template.FuncMap {
 	return template.FuncMap{
-		"add":     func(a, b any) (float64, error) { return applyOp(a, b, func(x, y float64) float64 { return x + y }) },
-		"sub":     func(a, b any) (float64, error) { return applyOp(a, b, func(x, y float64) float64 { return x - y }) },
-		"mul":     func(a, b any) (float64, error) { return applyOp(a, b, func(x, y float64) float64 { return x * y }) },
-		"div":     mathDiv,
-		"mod":     mathMod,
-		"abs":     func(a any) (float64, error) { return applyFunc(a, math.Abs) },
-		"ceil":    func(a any) (float64, error) { return applyFunc(a, math.Ceil) },
-		"floor":   func(a any) (float64, error) { return applyFunc(a, math.Floor) },
-		"round":   func(a any) (float64, error) { return applyFunc(a, math.Round) },
+		"add":     Add,
+		"sub":     Sub,
+		"mul":     Mul,
+		"div":     Div,
+		"mod":     Mod,
+		"abs":     Abs,
+		"ceil":    Ceil,
+		"floor":   Floor,
+		"round":   Round,
 		"min":     Min,
 		"max":     Max,
 		"pow":     Pow,
@@ -27,7 +27,33 @@ func mathFuncMap() template.FuncMap {
 	}
 }
 
-func mathDiv(a, b any) (float64, error) {
+// Add returns a + b. Both arguments accept any numeric type or numeric string.
+//
+//	add 3 4   → 7
+//	add 1.5 2 → 3.5
+func Add(a, b any) (float64, error) {
+	return applyOp(a, b, func(x, y float64) float64 { return x + y })
+}
+
+// Sub returns a - b. Both arguments accept any numeric type or numeric string.
+//
+//	sub 10 3 → 7
+func Sub(a, b any) (float64, error) {
+	return applyOp(a, b, func(x, y float64) float64 { return x - y })
+}
+
+// Mul returns a * b. Both arguments accept any numeric type or numeric string.
+//
+//	mul 3 4 → 12
+func Mul(a, b any) (float64, error) {
+	return applyOp(a, b, func(x, y float64) float64 { return x * y })
+}
+
+// Div returns a / b. Returns an error on division by zero.
+// Both arguments accept any numeric type or numeric string.
+//
+//	div 10 4 → 2.5
+func Div(a, b any) (float64, error) {
 	x, err := toFloat64(a)
 	if err != nil {
 		return 0, err
@@ -42,7 +68,12 @@ func mathDiv(a, b any) (float64, error) {
 	return x / y, nil
 }
 
-func mathMod(a, b any) (float64, error) {
+// Mod returns the floating-point remainder of a / b (math.Mod).
+// Returns an error on division by zero.
+// Both arguments accept any numeric type or numeric string.
+//
+//	mod 10 3 → 1
+func Mod(a, b any) (float64, error) {
 	x, err := toFloat64(a)
 	if err != nil {
 		return 0, err
@@ -56,6 +87,30 @@ func mathMod(a, b any) (float64, error) {
 	}
 	return math.Mod(x, y), nil
 }
+
+// Abs returns the absolute value of a.
+//
+//	abs -7 → 7
+//	abs  3 → 3
+func Abs(a any) (float64, error) { return applyFunc(a, math.Abs) }
+
+// Ceil returns the least integer value greater than or equal to a.
+//
+//	ceil 1.2 → 2
+//	ceil 2.0 → 2
+func Ceil(a any) (float64, error) { return applyFunc(a, math.Ceil) }
+
+// Floor returns the greatest integer value less than or equal to a.
+//
+//	floor 1.9 → 1
+//	floor 2.0 → 2
+func Floor(a any) (float64, error) { return applyFunc(a, math.Floor) }
+
+// Round returns the nearest integer, rounding half away from zero.
+//
+//	round 1.4 → 1
+//	round 1.5 → 2
+func Round(a any) (float64, error) { return applyFunc(a, math.Round) }
 
 func applyOp(a, b any, op func(float64, float64) float64) (float64, error) {
 	x, err := toFloat64(a)

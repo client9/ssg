@@ -14,8 +14,8 @@ func safeFuncMap() template.FuncMap {
 		"safeJS":        SafeJS,
 		"safeJSStr":     SafeJSStr,
 		"safeURL":       SafeURL,
-		"urlEncode":     url.QueryEscape,
-		"urlPathEscape": url.PathEscape,
+		"urlEncode":     URLEncode,
+		"urlPathEscape": URLPathEscape,
 	}
 }
 
@@ -87,3 +87,17 @@ func SafeURL(s any) (template.URL, error) {
 	str, err := safeString(s)
 	return template.URL(str), err
 }
+
+// URLEncode escapes a string so it can be safely placed in a URL query parameter,
+// encoding spaces as "+" and special characters as "%XX".
+//
+//	urlEncode "hello world" → "hello+world"
+//	urlEncode "a=1&b=2"    → "a%3D1%26b%3D2"
+func URLEncode(s string) string { return url.QueryEscape(s) }
+
+// URLPathEscape escapes a string so it can be safely placed in a URL path segment,
+// encoding spaces and reserved characters as "%XX" (spaces become "%20", not "+").
+//
+//	urlPathEscape "hello world" → "hello%20world"
+//	urlPathEscape "a/b"         → "a%2Fb"
+func URLPathEscape(s string) string { return url.PathEscape(s) }
