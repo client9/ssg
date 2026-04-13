@@ -202,6 +202,33 @@ func TestModBool(t *testing.T) {
 	}
 }
 
+func TestClamp(t *testing.T) {
+	cases := []struct {
+		val, min, max any
+		want          float64
+	}{
+		{5, 1, 10, 5},   // within range
+		{0, 1, 10, 1},   // below min
+		{15, 1, 10, 10}, // above max
+		{1, 1, 10, 1},   // at min
+		{10, 1, 10, 10}, // at max
+		{"5", "1", "10", 5}, // numeric strings
+	}
+	for _, c := range cases {
+		got, err := Clamp(c.val, c.min, c.max)
+		if err != nil {
+			t.Errorf("Clamp(%v, %v, %v): %v", c.val, c.min, c.max, err)
+			continue
+		}
+		if got != c.want {
+			t.Errorf("Clamp(%v, %v, %v) = %v, want %v", c.val, c.min, c.max, got, c.want)
+		}
+	}
+	if _, err := Clamp(5, 10, 1); err == nil {
+		t.Error("expected error for min > max")
+	}
+}
+
 func TestMinMax_errors(t *testing.T) {
 	if _, err := Min(); err == nil {
 		t.Error("Min(): expected error for no args")

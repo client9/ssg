@@ -10,6 +10,15 @@ import (
 
 // ---- math ----
 
+func ExampleClamp() {
+	within, _ := funcs.Clamp(5, 1, 10)
+	below, _ := funcs.Clamp(0, 1, 10)
+	above, _ := funcs.Clamp(15, 1, 10)
+	fmt.Println(within, below, above)
+	// Output:
+	// 5 1 10
+}
+
 func ExamplePow() {
 	v, _ := funcs.Pow(2, 10)
 	fmt.Println(v)

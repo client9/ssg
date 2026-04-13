@@ -1,59 +1,51 @@
 # TODO
 
-## Planned function groups
+## Remaining work
 
-### HTML / URL safety
-Functions that produce `template.HTML` or `template.URL` typed values, preventing
-double-escaping when used with `html/template`.
+_Nothing pending._
 
-| Name | Signature | Notes |
+---
+
+## Completed
+
+| Category | File | Functions |
 |---|---|---|
-| `safeHTML` | `(s string) template.HTML` | marks pre-rendered body as trusted |
-| `safeURL` | `(s string) template.URL` | marks a URL as trusted |
-| `urlEncode` | `(s string) string` | `url.QueryEscape` |
-| `urlPathEscape` | `(s string) string` | `url.PathEscape` |
+| Strings | `strings.go` | `lower`, `upper`, `trim`, `trimPrefix`, `trimSuffix`, `trimLeft`, `trimRight`, `contains`, `hasPrefix`, `hasSuffix`, `count`, `replace`, `replaceAll`, `repeat`, `split`, `join`, `fields`, `lenRunes`, `truncate`, `firstUpper` |
+| Math | `math.go` | `add`, `sub`, `mul`, `div`, `mod`, `abs`, `ceil`, `floor`, `round`, `min`, `max`, `pow`, `modBool` |
+| Path | `path.go` | `pathBase`, `pathDir`, `pathExt`, `pathJoin`, `pathClean` |
+| Safe / URL | `safe.go` | `safeCSS`, `safeHTML`, `safeHTMLAttr`, `safeJS`, `safeJSStr`, `safeURL`, `urlEncode`, `urlPathEscape` |
+| Encoding | `encoding.go` | `jsonify` |
+| Cast | `cast.go` | `toInt`, `toFloat` |
+| Time | `time.go` | `now`, `parseTime` |
+| Collections | `collections.go` | `list`, `dict`, `seq`, `first`, `last`, `take`, `drop`, `reverse`, `compact`, `concat`, `sort`, `sortNum`, `where`, `keys`, `values`, `merge`, `in`, `default`, `cond` |
+| Documentation | `example_test.go` | Example tests for all 42 exported functions |
 
-These need a new file `safe.go`. Note that `template.HTML` and `template.URL` are
-from `html/template`, not `text/template` — the types are compatible with both.
+Collections design notes (decisions not obvious from the code):
+- `list` not `slice` — avoids shadowing the built-in `slice` (subslicing) action
+- `compact` = consecutive-duplicate removal only (`slices.Compact` semantics); full dedup = `compact (sort $list)`
+- `sort`/`sortNum` are separate; use `reverse` for descending — no direction flag
+- `where` is equality-only; if comparison operators are ever needed they become new functions (`whereGt`, `whereLt`, etc.) following the same pattern
+- `take`/`drop` are count-based, collection-first: `take $list 5`, `drop $list 3`
+- `seq` is 1-based: `seq 5` → `[1 2 3 4 5]`; `seq 3 7` → `[3..7]`; `seq 1 10 2` → `[1 3 5 7 9]`
+- `merge` template key maps to exported `MergeMaps` to avoid collision with `funcs.Merge` (FuncMap combiner)
+- `sort` does not handle `time.Time`; ISO 8601 strings (`"2006-01-02"`) sort correctly lexicographically
 
-### Date / time
-All stdlib (`time` package). Follow subject-first convention.
+---
 
-| Name | Signature | Notes |
-|---|---|---|
-| `now` | `() time.Time` | |
-| `dateFormat` | `(t time.Time, layout string) string` | Go reference-time layout |
-| `year` | `(t time.Time) int` | |
-| `month` | `(t time.Time) int` | 1–12 |
-| `day` | `(t time.Time) int` | |
+## Not adding
 
-New file: `time.go`.
-
-### Collections
-Reflection-based helpers for slices. Return `(any, error)` so template execution
-stops cleanly on bad input.
-
-| Name | Signature | Notes |
-|---|---|---|
-| `first` | `(v any, n int) (any, error)` | first n elements of any slice |
-| `last` | `(v any, n int) (any, error)` | last n elements |
-| `default` | `(def, val any) any` | returns `def` if `val` is the zero value |
-| `dict` | `(kvs ...any) (map[string]any, error)` | inline map: `dict "k" v "k2" v2` |
-
-New file: `collections.go`. Use `reflect` — it is stdlib. Decide whether to also
-expose a typed `seq(n int) []int` for range loops (no reflection needed).
-
-## Documentation
-Every exported function needs a Go doc comment. Currently `FuncMap` and `Merge`
-have comments; the individual template functions (registered as `any` in the map)
-do not appear in `go doc` output. Options:
-
-- Document each function via a named wrapper (e.g. `func Truncate(s string, n int) string`)
-  that is both exported for godoc and registered in the map.
-- Add an `example_test.go` with `Example` functions — these render on pkg.go.dev
-  and double as runnable tests.
-- At minimum, a table in `doc.go` listing every function name, signature, and
-  one-line description.
-
-Recommendation: named exported wrappers + `Example` tests. The wrappers also make
-the functions directly callable from Go code without going through a FuncMap.
+| Function | Reason |
+|---|---|
+| `strings.Title` | Deprecated in Go; correct titlecase requires `golang.org/x/text` (no external deps) |
+| `strings.FindRE` / `FindRESubmatch` | Defer until there is a concrete use case |
+| `strings.CountWords` / `CountRunes` | Low priority; add if reading-time estimates are needed |
+| `math` trig (`sin`, `cos`, `tan`, …) | Almost never used in HTML templates |
+| `math.rand` | Non-deterministic output is hostile to SSG reproducibility |
+| `collections.shuffle` | Same reason as `math.rand` |
+| `path.Split` | Returns two values; awkward in templates — use `pathDir`/`pathBase` instead |
+| `time.In` / `time.ParseDuration` / `time.Duration` | Niche; add when there is a real use case |
+| `dateFormat` / `year` / `month` / `day` | Redundant — `time.Time` methods work directly in templates: `{{.Date.Format "2006-01-02"}}`, `{{.Date.Year}}` |
+| `toString` | Redundant — `printf "%v" $x` covers it |
+| `chomp` | Redundant — `trimRight $s "\r\n"` covers it |
+| `replaceRE` / `findRE` / `findRESubmatch` | Defer until regexp use cases in templates are better understood |
+| `base64Encode` / `base64Decode` | Two competing encodings (standard vs URL-safe); no clear use case yet to pick one |

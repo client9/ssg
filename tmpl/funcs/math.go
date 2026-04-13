@@ -23,6 +23,7 @@ func mathFuncMap() template.FuncMap {
 		"max":     Max,
 		"pow":     Pow,
 		"modBool": ModBool,
+		"clamp":   Clamp,
 	}
 }
 
@@ -173,6 +174,32 @@ func Max(args ...any) (float64, error) {
 		}
 	}
 	return m, nil
+}
+
+// Clamp constrains val to the range [min, max]. If val < min, min is returned;
+// if val > max, max is returned; otherwise val is returned unchanged.
+// All arguments accept any numeric type or numeric string.
+//
+//	clamp 5 1 10  → 5
+//	clamp 0 1 10  → 1
+//	clamp 15 1 10 → 10
+func Clamp(val, minVal, maxVal any) (float64, error) {
+	v, err := toFloat64(val)
+	if err != nil {
+		return 0, fmt.Errorf("clamp: val: %w", err)
+	}
+	lo, err := toFloat64(minVal)
+	if err != nil {
+		return 0, fmt.Errorf("clamp: min: %w", err)
+	}
+	hi, err := toFloat64(maxVal)
+	if err != nil {
+		return 0, fmt.Errorf("clamp: max: %w", err)
+	}
+	if lo > hi {
+		return 0, fmt.Errorf("clamp: min %v > max %v", lo, hi)
+	}
+	return math.Max(lo, math.Min(hi, v)), nil
 }
 
 // toFloat64 converts any numeric type or numeric string to float64.
