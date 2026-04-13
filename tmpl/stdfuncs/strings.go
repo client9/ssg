@@ -76,9 +76,6 @@ func Replace(s, old, new string, n ...int) string {
 // All other characters are left unchanged. It is rune-safe: multi-byte leading
 // characters such as "é" are handled correctly.
 //
-// This is not a replacement for strings.Title (deprecated): FirstUpper
-// capitalizes only the first character of the whole string, not each word.
-//
 //	firstUpper "go"              → "Go"
 //	firstUpper "hello world"    → "Hello world"
 //	firstUpper "élan"           → "Élan"

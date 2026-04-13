@@ -40,7 +40,6 @@
 //   - lenRunes(s) int — number of runes in s; unlike built-in len which counts bytes
 //   - truncate(s, n) string — shorten to at most n runes; appends "…" if truncated
 //   - firstUpper(s) string — uppercase first rune only; all other characters unchanged
-//   - capitalize(s) string — uppercase first rune, lowercase the rest; equivalent to firstUpper(lower(s))
 //
 // # Math
 //
