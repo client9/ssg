@@ -27,8 +27,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/client9/ssg"
 )
 
 // ValueTransformer is a function that can inspect or transform a parsed
@@ -278,19 +276,19 @@ func writeEmailMeta(out []byte, prefix string, data map[string]any) ([]byte, err
 
 // Loader is the default MetaLoader for email-style frontmatter with no
 // value transformers. Use NewLoader to apply transformers such as AsList.
-var Loader ssg.MetaLoader = NewLoader()
+var Loader = NewLoader()
 
 // NewLoader returns a MetaLoader for email-style frontmatter, applying tx in
 // order to each parsed key/value pair.
 //
 //	email.NewLoader(email.AsList("Tags"))
-func NewLoader(tx ...ValueTransformer) ssg.MetaLoader {
-	return func(raw []byte) (ssg.ContentSourceConfig, []byte, error) {
+func NewLoader(tx ...ValueTransformer) func([]byte) (map[string]any, []byte, error) {
+	return func(raw []byte) (map[string]any, []byte, error) {
 		head, body := split(raw)
 		if head == nil {
-			return ssg.ContentSourceConfig{}, body, nil
+			return map[string]any{}, body, nil
 		}
-		meta := ssg.ContentSourceConfig{}
+		meta := map[string]any{}
 		if err := Unmarshal(head, meta, tx...); err != nil {
 			return nil, nil, fmt.Errorf("unable to parse metadata: %v", err)
 		}

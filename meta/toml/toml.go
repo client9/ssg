@@ -13,17 +13,16 @@ import (
 	"bytes"
 
 	btoml "github.com/BurntSushi/toml"
-	"github.com/client9/ssg"
 )
 
 // Loader parses TOML frontmatter and returns the metadata and body.
 // Files with no +++\n prefix are returned as body-only with empty metadata.
-var Loader ssg.MetaLoader = func(raw []byte) (ssg.ContentSourceConfig, []byte, error) {
+var Loader = func(raw []byte) (map[string]any, []byte, error) {
 	head, body := split(raw)
 	if head == nil {
-		return ssg.ContentSourceConfig{}, body, nil
+		return map[string]any{}, body, nil
 	}
-	meta := ssg.ContentSourceConfig{}
+	meta := map[string]any{}
 	if _, err := btoml.NewDecoder(bytes.NewReader(head)).Decode(&meta); err != nil {
 		return nil, nil, err
 	}

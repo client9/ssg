@@ -66,7 +66,12 @@ func main() {
 	loadConf := ssg.LoadConfig{
 		ContentDir: "content",
 		Rules: []ssg.Rule{
-			{Pattern: "**/*.html", Loader: ssg.FrontmatterLoader(metajson.Loader, "baseof.html", ssg.CleanURLs(".html", ".html"))},
+			{
+				Pattern:   "**/*.html",
+				Loader:    metajson.Loader,
+				Template:  "baseof.html",
+				Transform: ssg.CleanURLs(".html", ".html"),
+			},
 		},
 	}
 

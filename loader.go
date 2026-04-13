@@ -1,58 +1,37 @@
 package ssg
 
-// FileLoader interprets a single file into a ContentSourceConfig.
-// Returning (nil, nil) signals that the file should be skipped.
-type FileLoader func(relPath string, raw []byte) (ContentSourceConfig, error)
-
-// Rule pairs a doublestar glob pattern with a FileLoader.
-// LoadContent tries rules in order; the first pattern that matches the file's
-// relative path wins. Files that match no rule are skipped.
+// Rule pairs a doublestar glob pattern with a MetaLoader and optional metadata
+// defaults. LoadContent tries rules in order; the first pattern that matches
+// the file's relative path wins. Files that match no rule are skipped.
 //
-//	Rule{"**/*.md",  FrontmatterLoader(...)}
-//	Rule{"**/*.css", PassthroughLoader()}
+// Template and Transform fill in TemplateName and OutputFile respectively,
+// but only when the loader's result doesn't already set them (frontmatter wins).
+// If Transform is nil, the relative path is used as-is for OutputFile.
+// If Transform returns "" the file is skipped.
+// A nil Loader skips the file without reading it.
+//
+//	Rule{Pattern: "**/*.md", Loader: yaml.Loader,
+//	     Template: "post.html", Transform: CleanURLs(".md", ".html")}
+//	Rule{Pattern: "**/*.css", Loader: ssg.Passthrough}
+//	Rule{Pattern: "**/_*"}  // nil Loader: skip draft files
 type Rule struct {
-	Pattern string
-	Loader  FileLoader
+	Pattern   string
+	Loader    MetaLoader
+	Template  string
+	Transform PathTransformer
 }
 
-// FrontmatterLoader returns a FileLoader that uses meta to parse each file's
-// frontmatter and body, then resolves the output path and template name.
-// If transform returns "" for a given path the file is skipped.
-func FrontmatterLoader(meta MetaLoader, baseTemplate string, transform PathTransformer) FileLoader {
-	return func(relPath string, raw []byte) (ContentSourceConfig, error) {
-		page, body, err := meta(raw)
-		if err != nil {
-			return nil, err
-		}
-
-		outputFile := page.OutputFile()
-		if outputFile == "" {
-			if transform != nil {
-				outputFile = transform(relPath)
-			}
-			if outputFile == "" {
-				return nil, nil // skip
-			}
-		}
-
-		templateName := page.TemplateName()
-		if templateName == "" {
-			templateName = baseTemplate
-		}
-
-		p := NewPage(outputFile, templateName, page)
-		p["Content"] = body
-		return p, nil
-	}
+// Passthrough is a MetaLoader that returns the raw file bytes as body with
+// empty metadata. Use it for assets (images, CSS, JS) that should be copied
+// to the output directory unchanged.
+var Passthrough MetaLoader = func(raw []byte) (map[string]any, []byte, error) {
+	return map[string]any{}, raw, nil
 }
 
-// PassthroughLoader returns a FileLoader that copies each file to the output
-// directory unchanged, preserving its relative path. Use this for assets
-// (images, CSS, JS) that live alongside content files.
-func PassthroughLoader() FileLoader {
-	return func(relPath string, raw []byte) (ContentSourceConfig, error) {
-		p := NewPage(relPath, "", nil)
-		p["Content"] = raw
-		return p, nil
-	}
+// Skip is a MetaLoader that unconditionally skips the file.
+// A nil Loader in a Rule has the same effect; Skip makes the intent explicit.
+//
+//	Rule{Pattern: "**/_*", Loader: ssg.Skip}
+var Skip MetaLoader = func(_ []byte) (map[string]any, []byte, error) {
+	return nil, nil, nil
 }

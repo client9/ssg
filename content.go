@@ -64,12 +64,12 @@ func LoadContent(conf LoadConfig, out *[]ContentSourceConfig) error {
 
 		relPath := filepath.ToSlash(path[len(conf.ContentDir)+1:])
 
-		loader, err := matchRules(conf.Rules, relPath)
+		rule, ok, err := matchRules(conf.Rules, relPath)
 		if err != nil {
 			return fmt.Errorf("LoadContent: bad pattern matching %q: %w", relPath, err)
 		}
-		if loader == nil {
-			return nil // no rule matched
+		if !ok || rule.Loader == nil {
+			return nil // no rule matched, or rule explicitly skips
 		}
 
 		raw, err := os.ReadFile(path)
@@ -77,12 +77,34 @@ func LoadContent(conf LoadConfig, out *[]ContentSourceConfig) error {
 			return fmt.Errorf("LoadContent: reading %s: %w", path, err)
 		}
 
-		page, err := loader(relPath, raw)
+		rawMeta, body, err := rule.Loader(raw)
 		if err != nil {
 			return fmt.Errorf("%s: %w", path, err)
 		}
-		if page == nil {
+		if rawMeta == nil {
 			return nil // loader signalled skip
+		}
+
+		page := ContentSourceConfig(rawMeta)
+		page["Content"] = body
+
+		// Fill OutputFile from Rule.Transform if frontmatter didn't set it.
+		if page.OutputFile() == "" {
+			var outputFile string
+			if rule.Transform != nil {
+				outputFile = rule.Transform(relPath)
+				if outputFile == "" {
+					return nil // transform signalled skip
+				}
+			} else {
+				outputFile = relPath
+			}
+			page["OutputFile"] = outputFile
+		}
+
+		// Fill TemplateName from Rule.Template if frontmatter didn't set it.
+		if page.TemplateName() == "" && rule.Template != "" {
+			page["TemplateName"] = rule.Template
 		}
 
 		page["InputFile"] = path
@@ -91,17 +113,17 @@ func LoadContent(conf LoadConfig, out *[]ContentSourceConfig) error {
 	})
 }
 
-// matchRules returns the first Loader whose Pattern matches relPath, or nil if
-// none match. Returns an error only if a pattern is malformed.
-func matchRules(rules []Rule, relPath string) (FileLoader, error) {
+// matchRules returns the first Rule whose Pattern matches relPath.
+// Returns an error only if a pattern is malformed.
+func matchRules(rules []Rule, relPath string) (Rule, bool, error) {
 	for _, r := range rules {
 		ok, err := doublestar.Match(r.Pattern, relPath)
 		if err != nil {
-			return nil, fmt.Errorf("pattern %q: %w", r.Pattern, err)
+			return Rule{}, false, fmt.Errorf("pattern %q: %w", r.Pattern, err)
 		}
 		if ok {
-			return r.Loader, nil
+			return r, true, nil
 		}
 	}
-	return nil, nil
+	return Rule{}, false, nil
 }
