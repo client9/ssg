@@ -1,4 +1,4 @@
-# funcs - additional functions for Go templates
+# stdfuncs - additional functions for Go templates
 
 The default functions in `text/template` and `html/template` are minimal. This extends them.
 
