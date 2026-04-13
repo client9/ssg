@@ -91,8 +91,3 @@ from Go. This surfaces the signature on pkg.go.dev and makes the function usable
 
 Pair each exported function with an `Example` test in `example_test.go` — these render on
 pkg.go.dev and serve as runnable documentation.
-
-## Naming
-
-The module may be renamed from `tmpl/funcs` to `tmpl/stdfuncs` if additional funcmap varieties
-(e.g. ones with third-party deps) are added. Raise this before adding any new module under `tmpl/`.

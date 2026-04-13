@@ -1,11 +1,11 @@
-package funcs_test
+package stdfuncs_test
 
 import (
 	"fmt"
 	"html/template"
 	"time"
 
-	funcs "github.com/client9/ssg/tmpl/funcs"
+	funcs "github.com/client9/ssg/tmpl/stdfuncs"
 )
 
 // ---- math ----

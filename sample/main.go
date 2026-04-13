@@ -2,28 +2,25 @@ package main
 
 import (
 	"fmt"
-	"github.com/client9/ssg"
-	"github.com/client9/ssg/render/htmlclean"
 	"html"
 	"io"
 	"log"
+	"sort"
 	"strings"
 	"text/template"
 
+	"github.com/client9/ssg"
+	"github.com/client9/ssg/render/htmlclean"
 	"github.com/yosssi/gohtml"
 )
 
-// same "content macro" using golang templates
-//
-// {{ elink "https://.../"  "name" }}
-// creates a <a> that opens in a new window
+// {{ elink "https://.../" "name" }} creates an <a> that opens in a new window.
 func elink(href string, body string) string {
 	return fmt.Sprintf("<a href=%q target=_blank>%s</a>",
 		html.EscapeString(href),
 		html.EscapeString(body))
 }
 
-// here's an example of a post processor
 func HTMLPretty(wr io.Writer, source io.Reader, data any) error {
 	src, err := io.ReadAll(source)
 	if err != nil {
@@ -33,26 +30,29 @@ func HTMLPretty(wr io.Writer, source io.Reader, data any) error {
 	return nil
 }
 
+// slug converts a tag name to a URL-safe string.
+func slug(s string) string {
+	s = strings.ToLower(s)
+	s = strings.ReplaceAll(s, " ", "-")
+	s = strings.ReplaceAll(s, "_", "-")
+	return s
+}
+
 func main() {
-	// various golang template functions
 	fns := template.FuncMap{
 		"upper": strings.ToUpper,
 		"elink": elink,
 	}
 
-	// file loading config
 	loadConf := ssg.LoadConfig{
-		ContentDir:   "content",
-		BaseTemplate: "baseof.html",
-		MetaSplit:    ssg.MetaSplitJson,
-		MetaParser:   ssg.MetaParseJson,
-		InputExt:     ".html",
-		OutputExt:    ".html",
-		IndexSource:  "index.html",
-		IndexDest:    "index.html",
+		ContentDir:      "content",
+		BaseTemplate:    "baseof.html",
+		MetaSplit:       ssg.MetaSplitJson,
+		MetaParser:      ssg.MetaParseJson,
+		InputExt:        ".html",
+		PathTransformer: ssg.CleanURLs(".html", ".html"),
 	}
 
-	// rendering pipeline
 	pipeline := []ssg.Renderer{
 		ssg.NewTemplateMacro(fns),
 		htmlclean.Render,
@@ -62,12 +62,51 @@ func main() {
 	}
 
 	pages := []ssg.ContentSourceConfig{}
-
 	if err := ssg.LoadContent(loadConf, &pages); err != nil {
-		log.Fatalf("load content failed: %s", err)
+		log.Fatalf("load content: %s", err)
 	}
 
+	// Build taxonomy: group content pages by tag.
+	byTag := ssg.GroupByStrings(pages, "Tags")
+
+	// Sort tag names for deterministic output.
+	tagNames := make([]string, 0, len(byTag))
+	for tag := range byTag {
+		tagNames = append(tagNames, tag)
+	}
+	sort.Strings(tagNames)
+
+	// One listing page per tag.
+	for _, tag := range tagNames {
+		pages = append(pages, ssg.NewPage(
+			"tags/"+slug(tag)+"/index.html",
+			"tag-list/index.html",
+			map[string]any{
+				"Title": "Tag: " + tag,
+				"Tag":   tag,
+				"Pages": byTag[tag],
+			},
+		))
+	}
+
+	// Tag index: precompute name+count structs so the template stays simple.
+	tagList := make([]map[string]any, 0, len(tagNames))
+	for _, tag := range tagNames {
+		tagList = append(tagList, map[string]any{
+			"Name":  tag,
+			"Count": len(byTag[tag]),
+		})
+	}
+	pages = append(pages, ssg.NewPage(
+		"tags/index.html",
+		"tag-index/index.html",
+		map[string]any{
+			"Title": "All Tags",
+			"Tags":  tagList,
+		},
+	))
+
 	if err := ssg.Render(pipeline, pages, nil); err != nil {
-		log.Fatalf("Main failed: %s", err)
+		log.Fatalf("render: %s", err)
 	}
 }

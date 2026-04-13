@@ -1,4 +1,4 @@
-// Package funcs provides a stdlib-only template.FuncMap for use with Go's
+// Package stdfuncs provides a stdlib-only template.FuncMap for use with Go's
 // text/template and html/template packages.
 //
 // All functions follow Go stdlib argument order: the primary value is the first
@@ -7,7 +7,7 @@
 //
 // # Usage
 //
-//	import "github.com/client9/ssg/tmpl/funcs"
+//	import "github.com/client9/ssg/tmpl/stdfuncs"
 //
 //	t := template.New("page").Funcs(funcs.FuncMap())
 //
@@ -155,4 +155,4 @@
 //   - in(v, val) bool — membership test: slice (element), map (key existence), string (substring)
 //   - default(def, val) any — return val if non-zero, else def; zero: nil, false, 0, "", empty slice/map
 //   - cond(ctrl, a, b) any — ternary: return a if ctrl is truthy, else b
-package funcs
+package stdfuncs
