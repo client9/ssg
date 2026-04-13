@@ -368,14 +368,6 @@ func ExampleTruncate() {
 	// hi
 }
 
-func ExampleCapitalize() {
-	fmt.Println(stdfuncs.Capitalize("hello world"))
-	fmt.Println(stdfuncs.Capitalize("NASA"))
-	// Output:
-	// Hello world
-	// Nasa
-}
-
 func ExampleLenRunes() {
 	fmt.Println(stdfuncs.LenRunes("café"))
 	fmt.Println(stdfuncs.LenRunes("日本語"))

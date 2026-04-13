@@ -22,24 +22,6 @@ func TestReplace(t *testing.T) {
 	}
 }
 
-func TestCapitalize(t *testing.T) {
-	cases := []struct {
-		in, want string
-	}{
-		{"hello world", "Hello world"},
-		{"NASA", "Nasa"},
-		{"already Upper", "Already upper"},
-		{"élan", "Élan"},
-		{"", ""},
-	}
-	for _, c := range cases {
-		got := Capitalize(c.in)
-		if got != c.want {
-			t.Errorf("Capitalize(%q) = %q, want %q", c.in, got, c.want)
-		}
-	}
-}
-
 func TestFirstUpper(t *testing.T) {
 	cases := []struct {
 		in, want string

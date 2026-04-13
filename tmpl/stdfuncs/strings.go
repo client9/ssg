@@ -38,7 +38,6 @@ func stringFuncMap() template.FuncMap {
 
 		// Case — first character only
 		"firstUpper": FirstUpper,
-		"capitalize": Capitalize,
 
 		// Length
 		"lenRunes": LenRunes,
@@ -46,15 +45,6 @@ func stringFuncMap() template.FuncMap {
 		// Truncate with ellipsis
 		"truncate": Truncate,
 	}
-}
-
-// Capitalize returns s with the first rune uppercased and all remaining
-// characters lowercased. Equivalent to firstUpper(lower(s)).
-//
-//	capitalize "hello world" → "Hello world"
-//	capitalize "NASA"        → "Nasa"
-func Capitalize(s string) string {
-	return FirstUpper(strings.ToLower(s))
 }
 
 // LenRunes returns the number of runes in s. Unlike the built-in len, which
