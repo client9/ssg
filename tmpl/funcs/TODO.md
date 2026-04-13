@@ -9,6 +9,7 @@ _Nothing pending._
 ## Notes
 
 Collections design notes (decisions not obvious from the code):
+
 - `list` not `slice` — avoids shadowing the built-in `slice` (subslicing) action
 - `compact` = consecutive-duplicate removal only (`slices.Compact` semantics); full dedup = `compact (sort $list)`
 - `sort`/`sortNum` are separate; use `reverse` for descending — no direction flag
@@ -16,7 +17,6 @@ Collections design notes (decisions not obvious from the code):
 - `take`/`drop` are count-based, collection-first: `take $list 5`, `drop $list 3`
 - `seq` is 1-based: `seq 5` → `[1 2 3 4 5]`; `seq 3 7` → `[3..7]`; `seq 1 10 2` → `[1 3 5 7 9]`
 - `merge` template key maps to exported `MergeMaps` to avoid collision with `funcs.Merge` (FuncMap combiner)
-- `sort` does not handle `time.Time`; ISO 8601 strings (`"2006-01-02"`) sort correctly lexicographically
 
 ---
 
