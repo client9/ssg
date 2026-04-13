@@ -103,3 +103,116 @@ func TestMathOps_mixedTypes(t *testing.T) {
 		t.Errorf("div(7.0, 2) = %v, want 3.5", got)
 	}
 }
+
+func TestMinMax(t *testing.T) {
+	cases := []struct {
+		name string
+		fn   func(...any) (float64, error)
+		args []any
+		want float64
+	}{
+		// Min: scalars
+		{"min/one", Min, []any{5}, 5},
+		{"min/two", Min, []any{3, 7}, 3},
+		{"min/many", Min, []any{4, 1, 9, 2}, 1},
+		{"min/negative", Min, []any{0, -3, 5}, -3},
+		// Min: slice input
+		{"min/slice", Min, []any{[]int{5, 2, 8}}, 2},
+		// Min: mixed scalars and slice
+		{"min/mixed", Min, []any{[]int{5, 2}, 1, 9}, 1},
+		// Min: nested slices
+		{"min/nested", Min, []any{[]any{[]int{10, 3}, 7}}, 3},
+		// Min: mixed types
+		{"min/types", Min, []any{float64(1.5), int(3), "2.0"}, 1.5},
+
+		// Max: scalars
+		{"max/one", Max, []any{5}, 5},
+		{"max/two", Max, []any{3, 7}, 7},
+		{"max/many", Max, []any{4, 1, 9, 2}, 9},
+		{"max/negative", Max, []any{0, -3, 5}, 5},
+		// Max: slice input
+		{"max/slice", Max, []any{[]int{5, 2, 8}}, 8},
+		// Max: mixed scalars and slice
+		{"max/mixed", Max, []any{[]int{5, 2}, 9, 1}, 9},
+		// Max: nested slices
+		{"max/nested", Max, []any{[]any{[]int{10, 3}, 7}}, 10},
+		// Max: mixed types
+		{"max/types", Max, []any{float64(1.5), int(3), "2.0"}, 3},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got, err := c.fn(c.args...)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got != c.want {
+				t.Errorf("got %v, want %v", got, c.want)
+			}
+		})
+	}
+}
+
+func TestPow(t *testing.T) {
+	cases := []struct {
+		base, exp any
+		want      float64
+	}{
+		{2, 10, 1024},
+		{9, 0.5, 3}, // square root
+		{5, 0, 1},   // anything^0 == 1
+		{0, 0, 1},   // math.Pow(0,0) == 1
+		{"2", "8", 256},
+	}
+	for _, c := range cases {
+		got, err := Pow(c.base, c.exp)
+		if err != nil {
+			t.Errorf("Pow(%v, %v): unexpected error: %v", c.base, c.exp, err)
+			continue
+		}
+		if got != c.want {
+			t.Errorf("Pow(%v, %v) = %v, want %v", c.base, c.exp, got, c.want)
+		}
+	}
+}
+
+func TestModBool(t *testing.T) {
+	cases := []struct {
+		a, b any
+		want bool
+	}{
+		{4, 2, true},
+		{5, 2, false},
+		{9, 3, true},
+		{10, 3, false},
+		{0, 5, true},
+	}
+	for _, c := range cases {
+		got, err := ModBool(c.a, c.b)
+		if err != nil {
+			t.Errorf("ModBool(%v, %v): unexpected error: %v", c.a, c.b, err)
+			continue
+		}
+		if got != c.want {
+			t.Errorf("ModBool(%v, %v) = %v, want %v", c.a, c.b, got, c.want)
+		}
+	}
+
+	if _, err := ModBool(5, 0); err == nil {
+		t.Error("ModBool(5, 0): expected error for division by zero")
+	}
+}
+
+func TestMinMax_errors(t *testing.T) {
+	if _, err := Min(); err == nil {
+		t.Error("Min(): expected error for no args")
+	}
+	if _, err := Max(); err == nil {
+		t.Error("Max(): expected error for no args")
+	}
+	if _, err := Min("bad"); err == nil {
+		t.Error("Min(bad): expected error for non-numeric string")
+	}
+	if _, err := Max(true); err == nil {
+		t.Error("Max(true): expected error for unsupported type")
+	}
+}

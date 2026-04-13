@@ -3,21 +3,26 @@ package funcs
 import (
 	"fmt"
 	"math"
+	"reflect"
 	"strconv"
 	"text/template"
 )
 
 func mathFuncMap() template.FuncMap {
 	return template.FuncMap{
-		"add":   func(a, b any) (float64, error) { return applyOp(a, b, func(x, y float64) float64 { return x + y }) },
-		"sub":   func(a, b any) (float64, error) { return applyOp(a, b, func(x, y float64) float64 { return x - y }) },
-		"mul":   func(a, b any) (float64, error) { return applyOp(a, b, func(x, y float64) float64 { return x * y }) },
-		"div":   mathDiv,
-		"mod":   mathMod,
-		"abs":   func(a any) (float64, error) { return applyFunc(a, math.Abs) },
-		"ceil":  func(a any) (float64, error) { return applyFunc(a, math.Ceil) },
-		"floor": func(a any) (float64, error) { return applyFunc(a, math.Floor) },
-		"round": func(a any) (float64, error) { return applyFunc(a, math.Round) },
+		"add":     func(a, b any) (float64, error) { return applyOp(a, b, func(x, y float64) float64 { return x + y }) },
+		"sub":     func(a, b any) (float64, error) { return applyOp(a, b, func(x, y float64) float64 { return x - y }) },
+		"mul":     func(a, b any) (float64, error) { return applyOp(a, b, func(x, y float64) float64 { return x * y }) },
+		"div":     mathDiv,
+		"mod":     mathMod,
+		"abs":     func(a any) (float64, error) { return applyFunc(a, math.Abs) },
+		"ceil":    func(a any) (float64, error) { return applyFunc(a, math.Ceil) },
+		"floor":   func(a any) (float64, error) { return applyFunc(a, math.Floor) },
+		"round":   func(a any) (float64, error) { return applyFunc(a, math.Round) },
+		"min":     Min,
+		"max":     Max,
+		"pow":     Pow,
+		"modBool": ModBool,
 	}
 }
 
@@ -69,6 +74,105 @@ func applyFunc(a any, fn func(float64) float64) (float64, error) {
 		return 0, err
 	}
 	return fn(x), nil
+}
+
+// Pow returns base raised to the power of exp.
+//
+//	Pow(2, 10) → 1024
+//	Pow(9, 0.5) → 3  (square root)
+func Pow(base, exp any) (float64, error) {
+	return applyOp(base, exp, math.Pow)
+}
+
+// ModBool reports whether a is evenly divisible by b (a mod b == 0).
+// Useful for alternating row styles: {{if modBool $i 2}}even{{end}}
+//
+//	ModBool(4, 2) → true
+//	ModBool(5, 2) → false
+func ModBool(a, b any) (bool, error) {
+	x, err := toFloat64(a)
+	if err != nil {
+		return false, err
+	}
+	y, err := toFloat64(b)
+	if err != nil {
+		return false, err
+	}
+	if y == 0 {
+		return false, fmt.Errorf("modBool: division by zero")
+	}
+	return math.Mod(x, y) == 0, nil
+}
+
+// flattenNumbers recursively flattens args, expanding any slice values, and
+// converts each element to float64. Nested slices are fully unwound.
+func flattenNumbers(args []any) ([]float64, error) {
+	var out []float64
+	for _, arg := range args {
+		v := reflect.ValueOf(arg)
+		if v.IsValid() && v.Kind() == reflect.Slice {
+			for i := range v.Len() {
+				sub, err := flattenNumbers([]any{v.Index(i).Interface()})
+				if err != nil {
+					return nil, err
+				}
+				out = append(out, sub...)
+			}
+		} else {
+			f, err := toFloat64(arg)
+			if err != nil {
+				return nil, err
+			}
+			out = append(out, f)
+		}
+	}
+	return out, nil
+}
+
+// Min returns the smallest value among the given numbers.
+// Accepts one or more scalars, slices, or a mix; slices are flattened recursively.
+//
+//	Min(3, 1, 2)              → 1
+//	Min([]int{5, 2, 8})       → 2
+//	Min([]int{5, 2}, 1, 9)    → 1
+func Min(args ...any) (float64, error) {
+	vals, err := flattenNumbers(args)
+	if err != nil {
+		return 0, err
+	}
+	if len(vals) == 0 {
+		return 0, fmt.Errorf("min: no arguments")
+	}
+	m := vals[0]
+	for _, v := range vals[1:] {
+		if v < m {
+			m = v
+		}
+	}
+	return m, nil
+}
+
+// Max returns the largest value among the given numbers.
+// Accepts one or more scalars, slices, or a mix; slices are flattened recursively.
+//
+//	Max(3, 1, 2)              → 3
+//	Max([]int{5, 2, 8})       → 8
+//	Max([]int{5, 2}, 9, 1)    → 9
+func Max(args ...any) (float64, error) {
+	vals, err := flattenNumbers(args)
+	if err != nil {
+		return 0, err
+	}
+	if len(vals) == 0 {
+		return 0, fmt.Errorf("max: no arguments")
+	}
+	m := vals[0]
+	for _, v := range vals[1:] {
+		if v > m {
+			m = v
+		}
+	}
+	return m, nil
 }
 
 // toFloat64 converts any numeric type or numeric string to float64.

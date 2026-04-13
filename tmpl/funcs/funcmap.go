@@ -10,6 +10,12 @@ import (
 func FuncMap() template.FuncMap {
 	out := stringFuncMap()
 	maps.Copy(out, mathFuncMap())
+	maps.Copy(out, pathFuncMap())
+	maps.Copy(out, safeFuncMap())
+	maps.Copy(out, collectionsFuncMap())
+	maps.Copy(out, timeFuncMap())
+	maps.Copy(out, castFuncMap())
+	maps.Copy(out, encodingFuncMap())
 	return out
 }
 
