@@ -287,17 +287,17 @@ func ExampleIn_string() {
 }
 
 func ExampleDefault() {
-	fmt.Println(funcs.Default("anon", ""))
-	fmt.Println(funcs.Default("anon", "Alice"))
+	fmt.Println(stdfuncs.Default("anon", ""))
+	fmt.Println(stdfuncs.Default("anon", "Alice"))
 	// Output:
 	// anon
 	// Alice
 }
 
 func ExampleCond() {
-	fmt.Println(funcs.Cond(true, "yes", "no"))
-	fmt.Println(funcs.Cond(false, "yes", "no"))
-	fmt.Println(funcs.Cond(0, "yes", "no"))
+	fmt.Println(stdfuncs.Cond(true, "yes", "no"))
+	fmt.Println(stdfuncs.Cond(false, "yes", "no"))
+	fmt.Println(stdfuncs.Cond(0, "yes", "no"))
 	// Output:
 	// yes
 	// no
@@ -351,29 +351,29 @@ func ExampleSafeJSStr() {
 // ---- strings ----
 
 func ExampleCapitalize() {
-	fmt.Println(funcs.Capitalize("hello world"))
-	fmt.Println(funcs.Capitalize("NASA"))
+	fmt.Println(stdfuncs.Capitalize("hello world"))
+	fmt.Println(stdfuncs.Capitalize("NASA"))
 	// Output:
 	// Hello world
 	// Nasa
 }
 
 func ExampleLenRunes() {
-	fmt.Println(funcs.LenRunes("café"))
-	fmt.Println(funcs.LenRunes("日本語"))
+	fmt.Println(stdfuncs.LenRunes("café"))
+	fmt.Println(stdfuncs.LenRunes("日本語"))
 	// Output:
 	// 4
 	// 3
 }
 
 func ExampleReplace() {
-	fmt.Println(funcs.Replace("aabbaa", "a", "x"))
+	fmt.Println(stdfuncs.Replace("aabbaa", "a", "x"))
 	// Output:
 	// xabbaa
 }
 
 func ExampleReplace_count() {
-	fmt.Println(funcs.Replace("aabbaa", "a", "x", -1))
+	fmt.Println(stdfuncs.Replace("aabbaa", "a", "x", -1))
 	// Output:
 	// xxbbxx
 }
@@ -446,7 +446,7 @@ func ExampleMerge() {
 	custom := template.FuncMap{
 		"greet": func(name string) string { return "Hello, " + name + "!" },
 	}
-	fm := stdfuncs.Merge(funcs.FuncMap(), custom)
+	fm := stdfuncs.Merge(stdfuncs.FuncMap(), custom)
 	t := template.Must(template.New("").Funcs(fm).Parse(`{{greet "World"}}`))
 	_ = t.Execute(nil, nil)
 	// (Merge combines FuncMaps; later maps win on key collision)

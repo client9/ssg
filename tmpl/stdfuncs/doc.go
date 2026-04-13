@@ -9,11 +9,11 @@
 //
 //	import "github.com/client9/ssg/tmpl/stdfuncs"
 //
-//	t := template.New("page").Funcs(funcs.FuncMap())
+//	t := template.New("page").Funcs(stdfuncs.FuncMap())
 //
 // To combine with your own functions:
 //
-//	fns := funcs.Merge(funcs.FuncMap(), template.FuncMap{
+//	fns := stdfuncs.Merge(stdfuncs.FuncMap(), template.FuncMap{
 //	    "myFunc": myFunc,
 //	})
 //	t := template.New("page").Funcs(fns)
