@@ -38,6 +38,24 @@ func slug(s string) string {
 	return s
 }
 
+func tmplMacro(funcs template.FuncMap) ssg.Renderer {
+	t := template.New("_macro")
+	if funcs != nil {
+		t = t.Funcs(funcs)
+	}
+	return func(wr io.Writer, src io.Reader, data any) error {
+		raw, err := io.ReadAll(src)
+		if err != nil {
+			return err
+		}
+		t, err = t.Parse(string(raw))
+		if err != nil {
+			return err
+		}
+		return t.Execute(wr, data)
+	}
+}
+
 func main() {
 	fns := template.FuncMap{
 		"upper": strings.ToUpper,
@@ -54,7 +72,7 @@ func main() {
 	}
 
 	pipeline := []ssg.Renderer{
-		ssg.NewTemplateMacro(fns),
+		tmplMacro(fns),
 		htmlclean.Render,
 		ssg.Must(ssg.NewPageRender("layout", fns)),
 		HTMLPretty,
