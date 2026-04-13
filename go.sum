@@ -1,2 +1,10 @@
 github.com/bmatcuk/doublestar/v4 v4.10.0 h1:zU9WiOla1YA122oLM6i4EXvGW62DvKZVxIe6TYWexEs=
 github.com/bmatcuk/doublestar/v4 v4.10.0/go.mod h1:xBQ8jztBU6kakFMg+8WGxn0c6z1fTSPVIjEY1Wr7jzc=
+github.com/client9/ssg/meta/json v0.0.0-20260413215725-050d0a4ef886 h1:TPWYIDPEvitrGSQGmIfzhmyEauGP/ZPrODZstyIQN30=
+github.com/client9/ssg/meta/json v0.0.0-20260413215725-050d0a4ef886/go.mod h1:neF8CjGwi4yaqL/VzuLPERO3EUrDnwFrCnyJ/0h7auU=
+github.com/client9/ssg/render/htmlclean v0.0.0-20260413215725-050d0a4ef886 h1:Paeh0WNyj+TzZal8wDpOXWKDyfxndkmVS2AAxqLRWZ8=
+github.com/client9/ssg/render/htmlclean v0.0.0-20260413215725-050d0a4ef886/go.mod h1:xu9s4AiYTxKKRpOa6tPTt3IfkO+MM05KQiBB8bjPuBI=
+github.com/yosssi/gohtml v0.0.0-20201013000340-ee4748c638f4 h1:0sw0nJM544SpsihWx1bkXdYLQDlzRflMgFJQ4Yih9ts=
+github.com/yosssi/gohtml v0.0.0-20201013000340-ee4748c638f4/go.mod h1:+ccdNT0xMY1dtc5XBxumbYfOUhmduiGudqaDgD2rVRE=
+golang.org/x/net v0.41.0 h1:vBTly1HeNPEn3wtREYfy4GZ/NECgw2Cnl+nK6Nz3uvw=
+golang.org/x/net v0.41.0/go.mod h1:B/K4NNqkfmg07DQYrbwvSluqCJOOXwUjeb/5lOisjbA=
