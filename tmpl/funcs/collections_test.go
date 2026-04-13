@@ -177,7 +177,9 @@ func TestReverse(t *testing.T) {
 	}
 	// original must be unmodified
 	orig := []int{1, 2, 3}
-	Reverse(orig)
+	if _, err := Reverse(orig); err != nil {
+		t.Errorf("got error %v, expected none", err)
+	}
 	if orig[0] != 1 {
 		t.Error("Reverse must not modify original slice")
 	}
@@ -267,9 +269,9 @@ func TestSort(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	wantInts := []any{2, 10, 30, 5} // lex would give [10 2 30 5] sorted as [10 2 30 5]→[10 2 30 5]
+	//wantInts := []any{2, 10, 30, 5} // lex would give [10 2 30 5] sorted as [10 2 30 5]→[10 2 30 5]
 	// numeric order: 2 5 10 30
-	wantInts = []any{2, 5, 10, 30}
+	wantInts := []any{2, 5, 10, 30}
 	if !reflect.DeepEqual(got, wantInts) {
 		t.Errorf("sort []int: got %v, want %v", got, wantInts)
 	}

@@ -207,11 +207,11 @@ func TestClamp(t *testing.T) {
 		val, min, max any
 		want          float64
 	}{
-		{5, 1, 10, 5},   // within range
-		{0, 1, 10, 1},   // below min
-		{15, 1, 10, 10}, // above max
-		{1, 1, 10, 1},   // at min
-		{10, 1, 10, 10}, // at max
+		{5, 1, 10, 5},       // within range
+		{0, 1, 10, 1},       // below min
+		{15, 1, 10, 10},     // above max
+		{1, 1, 10, 1},       // at min
+		{10, 1, 10, 10},     // at max
 		{"5", "1", "10", 5}, // numeric strings
 	}
 	for _, c := range cases {
