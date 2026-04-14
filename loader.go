@@ -1,24 +1,25 @@
 package ssg
 
-// Rule pairs a doublestar glob pattern with a MetaLoader and optional metadata
-// defaults. LoadContent tries rules in order; the first pattern that matches
-// the file's relative path wins. Files that match no rule are skipped.
-//
-// Template and Transform fill in TemplateName and OutputFile respectively,
-// but only when the loader's result doesn't already set them (frontmatter wins).
-// If Transform is nil, the relative path is used as-is for OutputFile.
-// If Transform returns "" the file is skipped.
+// Rule pairs a doublestar glob pattern with a MetaLoader and a Pipeline.
+// FileWalker tries rules in order; the first pattern that matches the file's
+// relative path wins. Files that match no rule are skipped.
 // A nil Loader skips the file without reading it.
 //
-//	Rule{Pattern: "**/*.md", Loader: yaml.Loader,
-//	     Template: "post.html", Transform: CleanURLs(".md", ".html")}
-//	Rule{Pattern: "**/*.css", Loader: ssg.Passthrough}
-//	Rule{Pattern: "**/_*"}  // nil Loader: skip draft files
+//	Rule{
+//	    Pattern:  "**/*.md",
+//	    Loader:   metayaml.Loader,
+//	    Pipeline: ssg.NewPipeline("post",
+//	        ssg.SetOutputFile(ssg.CleanURLs(".md", ".html")),
+//	        markdown.New(),
+//	        ssg.Must(ssg.NewPageRender("layout", fns)),
+//	        ssg.WriteOutput,
+//	    ),
+//	}
+//	Rule{Pattern: "**/_*"} // nil Loader: skip draft files
 type Rule struct {
-	Pattern   string
-	Loader    MetaLoader
-	Template  string
-	Transform PathTransformer
+	Pattern  string
+	Loader   MetaLoader
+	Pipeline Pipeline
 }
 
 // Passthrough is a MetaLoader that returns the raw file bytes as body with

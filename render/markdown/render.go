@@ -2,7 +2,6 @@ package markdown
 
 import (
 	"bytes"
-	"io"
 
 	"github.com/client9/ssg"
 	"github.com/yuin/goldmark"
@@ -10,9 +9,9 @@ import (
 	"github.com/yuin/goldmark/parser"
 )
 
-// New returns a Renderer that converts Markdown to HTML using Goldmark
+// New returns a DynStage that converts Markdown to HTML using Goldmark
 // with GitHub Flavored Markdown extensions and auto heading IDs.
-func New() ssg.Renderer {
+func New() ssg.Stage {
 	md := goldmark.New(
 		goldmark.WithExtensions(extension.GFM),
 		goldmark.WithParserOptions(
@@ -22,13 +21,13 @@ func New() ssg.Renderer {
 	return NewGoldmark(md)
 }
 
-// NewGoldmark wraps a custom Goldmark instance as a Renderer.
-func NewGoldmark(md goldmark.Markdown) ssg.Renderer {
-	return func(wr io.Writer, src io.Reader, data any) error {
+// NewGoldmark wraps a custom Goldmark instance as a DynStage.
+func NewGoldmark(md goldmark.Markdown) ssg.Stage {
+	return ssg.Step("markdown", func(_ *ssg.Context, _ ssg.ContentSourceConfig, in []byte) ([]byte, error) {
 		var buf bytes.Buffer
-		if _, err := io.Copy(&buf, src); err != nil {
-			return err
+		if err := md.Convert(in, &buf); err != nil {
+			return nil, err
 		}
-		return md.Convert(buf.Bytes(), wr)
-	}
+		return buf.Bytes(), nil
+	})
 }

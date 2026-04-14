@@ -8,21 +8,11 @@ import (
 	"strings"
 )
 
-// WriteSitemap generates a sitemap.xml in outDir listing all pages.
-// baseURL is prepended to each page's OutputFile to form the full URL
+// WriteSitemap generates a sitemap.xml in outDir listing all artifacts.
+// baseURL is prepended to each artifact's OutputFile to form the full URL
 // (trailing slashes on baseURL are trimmed automatically).
-// Pages with an empty OutputFile are skipped.
-//
-// The output follows the sitemap.org protocol so search engines can
-// discover all pages on the site.
-//
-// Example:
-//
-//	pages := []ssg.ContentSourceConfig{}
-//	ssg.LoadContent(conf, &pages)
-//	ssg.Render(conf, pages, nil)
-//	ssg.WriteSitemap("public", "https://example.com", pages)
-func WriteSitemap(outDir, baseURL string, pages []ContentSourceConfig) error {
+// Artifacts with an empty OutputFile are skipped.
+func WriteSitemap(outDir, baseURL string, artifacts []Artifact) error {
 	baseURL = strings.TrimRight(baseURL, "/")
 
 	type url struct {
@@ -35,12 +25,11 @@ func WriteSitemap(outDir, baseURL string, pages []ContentSourceConfig) error {
 	}
 
 	us := urlset{XMLNS: "http://www.sitemaps.org/schemas/sitemap/0.9"}
-	for _, p := range pages {
-		out := p.OutputFile()
+	for _, a := range artifacts {
+		out := a.Meta.OutputFile()
 		if out == "" {
 			continue
 		}
-		// Use forward slashes in URLs regardless of OS path separator.
 		loc := baseURL + "/" + filepath.ToSlash(out)
 		us.URLs = append(us.URLs, url{Loc: loc})
 	}

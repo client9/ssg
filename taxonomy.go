@@ -1,40 +1,40 @@
 package ssg
 
-// GroupByString groups pages by the string value of a single-value field
-// (e.g. "Category"). Pages where the field is absent, empty, or not a string
-// are skipped.
+// GroupByString groups artifacts by the string value of a single-value field
+// (e.g. "Category"). Artifacts where the field is absent, empty, or not a
+// string are skipped.
 //
-//	byCategory := ssg.GroupByString(pages, "Category")
-//	for cat, catPages := range byCategory { ... }
-func GroupByString(pages []ContentSourceConfig, field string) map[string][]ContentSourceConfig {
-	out := make(map[string][]ContentSourceConfig)
-	for _, p := range pages {
-		v, ok := p[field].(string)
+//	byCategory := ssg.GroupByString(artifacts, "Category")
+//	for cat, catArtifacts := range byCategory { ... }
+func GroupByString(artifacts []Artifact, field string) map[string][]Artifact {
+	out := make(map[string][]Artifact)
+	for _, a := range artifacts {
+		v, ok := a.Meta[field].(string)
 		if !ok || v == "" {
 			continue
 		}
-		out[v] = append(out[v], p)
+		out[v] = append(out[v], a)
 	}
 	return out
 }
 
-// GroupByStrings groups pages by a multi-value string field (e.g. "Tags").
-// A page appears in the result once for each value it contains.
+// GroupByStrings groups artifacts by a multi-value string field (e.g. "Tags").
+// An artifact appears in the result once for each value it contains.
 //
 // The field value may be []string, []any (as produced by YAML/JSON parsers),
 // or a bare string (a single value written without a list). Empty strings are
 // skipped.
 //
-//	byTag := ssg.GroupByStrings(pages, "Tags")
-//	for tag, tagPages := range byTag { ... }
-func GroupByStrings(pages []ContentSourceConfig, field string) map[string][]ContentSourceConfig {
-	out := make(map[string][]ContentSourceConfig)
-	for _, p := range pages {
-		for _, v := range toStringSlice(p[field]) {
+//	byTag := ssg.GroupByStrings(artifacts, "Tags")
+//	for tag, tagArtifacts := range byTag { ... }
+func GroupByStrings(artifacts []Artifact, field string) map[string][]Artifact {
+	out := make(map[string][]Artifact)
+	for _, a := range artifacts {
+		for _, v := range toStringSlice(a.Meta[field]) {
 			if v == "" {
 				continue
 			}
-			out[v] = append(out[v], p)
+			out[v] = append(out[v], a)
 		}
 	}
 	return out

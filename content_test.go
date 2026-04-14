@@ -1,87 +1,149 @@
 package ssg
 
 import (
-	"io"
+	"os"
+	"path/filepath"
 	"testing"
 )
 
-// noopRenderer is a Renderer that discards all input, used to exercise Render
-// without needing a real pipeline.
-func noopRenderer(wr io.Writer, src io.Reader, data any) error {
-	_, err := io.Copy(io.Discard, src)
-	return err
-}
-
-// minimalPage returns a ContentSourceConfig with the minimum keys required by
-// Render (Content and OutputFile).
-func minimalPage(title string) ContentSourceConfig {
-	return ContentSourceConfig{
-		"Content":    []byte("body"),
-		"OutputFile": "out.html",
-		"InputFile":  "content/page.html",
-		"Title":      title,
-	}
-}
-
-func TestRender_nilGlobals(t *testing.T) {
-	pipeline := []Renderer{noopRenderer}
-	pages := []ContentSourceConfig{minimalPage("A"), minimalPage("B")}
-
-	if err := Render(pipeline, pages, nil); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-}
-
-func TestRender_globalsInjected(t *testing.T) {
-	pipeline := []Renderer{noopRenderer}
-	pages := []ContentSourceConfig{minimalPage("A"), minimalPage("B")}
-	globals := map[string]any{"Nav": "top-nav"}
-
-	if err := Render(pipeline, pages, globals); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	for i, p := range pages {
-		if got := p.Get("Nav"); got != "top-nav" {
-			t.Errorf("pages[%d]: expected Nav=%q, got %q", i, "top-nav", got)
+// writeContent creates a temporary content directory with the given files.
+func writeContent(t *testing.T, files map[string]string) string {
+	t.Helper()
+	dir := t.TempDir()
+	for rel, body := range files {
+		full := filepath.Join(dir, rel)
+		if err := os.MkdirAll(filepath.Dir(full), 0750); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(full, []byte(body), 0666); err != nil {
+			t.Fatal(err)
 		}
 	}
+	return dir
 }
 
-func TestRender_pageFrontmatterWins(t *testing.T) {
-	pipeline := []Renderer{noopRenderer}
-	page := minimalPage("A")
-	page["Nav"] = "page-nav"
-	pages := []ContentSourceConfig{page}
-	globals := map[string]any{"Nav": "global-nav"}
+func TestFileWalker_basic(t *testing.T) {
+	dir := writeContent(t, map[string]string{
+		"post.html": "body only",
+	})
 
-	if err := Render(pipeline, pages, globals); err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	rules := []Rule{
+		{Pattern: "**/*.html", Loader: Passthrough, Pipeline: Pipeline{name: "nothing", stages: nil}},
 	}
-	if got := pages[0].Get("Nav"); got != "page-nav" {
-		t.Errorf("expected page frontmatter to win: got %q, want %q", got, "page-nav")
-	}
-}
 
-func TestRender_globalsAvailableToAllPages(t *testing.T) {
-	pipeline := []Renderer{noopRenderer}
-	pages := []ContentSourceConfig{minimalPage("A"), minimalPage("B"), minimalPage("C")}
-	globals := map[string]any{"Shared": "yes"}
-
-	if err := Render(pipeline, pages, globals); err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	var artifacts []Artifact
+	if err := FileWalker(dir, rules)(nil, &artifacts); err != nil {
+		t.Fatalf("FileWalker: %v", err)
 	}
-	for i, p := range pages {
-		if got := p.Get("Shared"); got != "yes" {
-			t.Errorf("pages[%d]: expected Shared=%q, got %q", i, "yes", got)
-		}
+	if len(artifacts) != 1 {
+		t.Fatalf("expected 1 artifact, got %d", len(artifacts))
+	}
+	if string(artifacts[0].Meta["Content"].([]byte)) != "body only" {
+		t.Errorf("unexpected content: %s", artifacts[0].Meta["Content"])
 	}
 }
 
-func TestRender_emptyGlobals(t *testing.T) {
-	pipeline := []Renderer{noopRenderer}
-	pages := []ContentSourceConfig{minimalPage("A")}
+func TestFileWalker_noMatch(t *testing.T) {
+	dir := writeContent(t, map[string]string{
+		"post.md": "# hello",
+	})
 
-	if err := Render(pipeline, pages, map[string]any{}); err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	rules := []Rule{
+		{Pattern: "**/*.html", Loader: Passthrough, Pipeline: Pipeline{name: "nothing", stages: nil}},
+	}
+
+	var artifacts []Artifact
+	if err := FileWalker(dir, rules)(nil, &artifacts); err != nil {
+		t.Fatalf("FileWalker: %v", err)
+	}
+	if len(artifacts) != 0 {
+		t.Errorf("expected 0 artifacts, got %d", len(artifacts))
+	}
+}
+
+func TestFileWalker_nilLoader(t *testing.T) {
+	dir := writeContent(t, map[string]string{
+		"_draft.html": "skip me",
+	})
+
+	rules := []Rule{
+		{Pattern: "**/_*"}, // nil Loader = skip
+	}
+
+	var artifacts []Artifact
+	if err := FileWalker(dir, rules)(nil, &artifacts); err != nil {
+		t.Fatalf("FileWalker: %v", err)
+	}
+	if len(artifacts) != 0 {
+		t.Errorf("expected 0 artifacts for nil loader, got %d", len(artifacts))
+	}
+}
+
+func TestFileWalker_skipHiddenDirs(t *testing.T) {
+	dir := writeContent(t, map[string]string{
+		".git/config": "gitconfig",
+		"post.html":   "visible",
+	})
+
+	rules := []Rule{
+		{Pattern: "**/*.html", Loader: Passthrough, Pipeline: Pipeline{name: "nothing", stages: nil}},
+	}
+
+	var artifacts []Artifact
+	if err := FileWalker(dir, rules)(nil, &artifacts); err != nil {
+		t.Fatalf("FileWalker: %v", err)
+	}
+	if len(artifacts) != 1 {
+		t.Errorf("expected 1 artifact (hidden dir skipped), got %d", len(artifacts))
+	}
+}
+
+func TestFileWalker_independentMeta(t *testing.T) {
+	dir := writeContent(t, map[string]string{
+		"a.md": "# a",
+		"b.md": "# b",
+	})
+
+	rules := []Rule{
+		{Pattern: "**/*.md", Loader: Passthrough, Pipeline: Pipeline{name: "nothing", stages: nil}},
+	}
+
+	var artifacts []Artifact
+	if err := FileWalker(dir, rules)(nil, &artifacts); err != nil {
+		t.Fatalf("FileWalker: %v", err)
+	}
+	if len(artifacts) != 2 {
+		t.Fatalf("expected 2 artifacts (one per file), got %d", len(artifacts))
+	}
+	// Each artifact must have an independent meta map.
+	artifacts[0].Meta["OutputFile"] = "a.html"
+	artifacts[1].Meta["OutputFile"] = "b.html"
+	if artifacts[0].Meta.OutputFile() == artifacts[1].Meta.OutputFile() {
+		t.Error("artifacts should have independent meta maps")
+	}
+}
+
+func TestFileWalker_firstRuleWins(t *testing.T) {
+	dir := writeContent(t, map[string]string{
+		"post.html": "content",
+	})
+
+	called := 0
+	countLoader := MetaLoader(func(raw []byte) (map[string]any, []byte, error) {
+		called++
+		return map[string]any{}, raw, nil
+	})
+
+	rules := []Rule{
+		{Pattern: "**/*.html", Loader: countLoader, Pipeline: Pipeline{name: "nothing", stages: nil}},
+		{Pattern: "**/*.html", Loader: countLoader, Pipeline: Pipeline{name: "nothing", stages: nil}},
+	}
+
+	var artifacts []Artifact
+	if err := FileWalker(dir, rules)(nil, &artifacts); err != nil {
+		t.Fatalf("FileWalker: %v", err)
+	}
+	if called != 1 {
+		t.Errorf("expected loader called once (first match wins), got %d", called)
 	}
 }

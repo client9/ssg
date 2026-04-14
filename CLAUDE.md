@@ -29,158 +29,264 @@ cd sample && make run    # go run main.go  → outputs to sample/public/
 
 This is a **static site generator toolkit** (module `github.com/client9/ssg`). It provides a composable pipeline for transforming content files with frontmatter metadata into HTML output.
 
+### Processing model
+
+```
+load inputs into memory
+  ↓
+enrich / expand / contract
+  add or remove artifacts, derive metadata
+  ↓
+materialize
+  each artifact runs its own pipeline → emit outputs
+```
+
+All three phases use the same `Plugin` interface. `FileWalker` + `Rules` is the only special primitive.
+
 ### Core types
 
 ```go
-// A single transformation step in the rendering pipeline
-type Renderer func(wr io.Writer, src io.Reader, data any) error
-
-// Page metadata (extracted frontmatter) — a plain map with typed accessors
-// (.OutputFile(), .TemplateName(), .InputFile(), .Get(key))
-type ContentSourceConfig map[string]any
-
-// LoadConfig controls how content files are found and parsed.
-// No role in rendering.
-type LoadConfig struct {
-    ContentDir      string
-    BaseTemplate    string
-    MetaSplit       ContentSplitter   // splits raw bytes → (meta, body)
-    MetaParser      MetaParser        // parses meta bytes → ContentSourceConfig
-    InputExt        string            // file extension filter, e.g. ".md"
-    PathTransformer PathTransformer   // maps input path → output path
+// Site-wide state passed to every Plugin and Stage.
+type Context struct {
+    Globals   map[string]any
+    OutputDir string
+    Logger    *log.Logger
 }
 
-// PathTransformer maps a relative input path to a relative output path.
-// Return "" to skip the file. Built-ins: CleanURLs, UglyURLs.
-// Compose with SlugNormalize: SlugNormalize(CleanURLs(".md", ".html"))
+// The single interface for all pipeline phases: load, expand, contract, materialize.
+type Plugin func(ctx *Context, artifacts *[]Artifact) error
+
+// A single unit of work: metadata plus the pipeline that will produce its output.
+type Artifact struct {
+    Meta     ContentSourceConfig
+    Pipeline Pipeline
+}
+
+// A named sequence of stages executed in order.
+type Pipeline struct { /* name, stages — use NewPipeline to construct */ }
+
+func NewPipeline(name string, stages ...Stage) Pipeline
+
+// A named pipeline step. Use Step[I,O] to create one from a typed function.
+// The pipeline carries both content (typed I→O) and metadata (ContentSourceConfig).
+// A step can transform content, mutate metadata, or both.
+type Stage interface {
+    Name() string
+    Run(ctx *Context, cfg ContentSourceConfig, in any) (any, error)
+}
+
+// Step wraps a typed function into a Stage. any is confined here.
+func Step[I, O any](name string, fn func(*Context, ContentSourceConfig, I) (O, error)) Stage
+
+// Page metadata — a plain map with typed accessors:
+// .OutputFile(), .TemplateName(), .InputFile(), .SourcePath(), .Get(key), .Clone()
+type ContentSourceConfig map[string]any
+
+// Parses raw file bytes into frontmatter metadata and body.
+// Returning a nil map signals skip. Return type is map[string]any so
+// loader implementations have no dependency on the ssg module.
+type MetaLoader func(raw []byte) (map[string]any, []byte, error)
+
+// Maps a glob pattern to a loader and a pipeline.
+// Rules are tried in order; first match wins. nil Loader = skip.
+type Rule struct {
+    Pattern  string
+    Loader   MetaLoader
+    Pipeline Pipeline
+}
+
+// Maps a relative input path to a relative output path.
+// Return "" to skip. Built-ins: CleanURLs, UglyURLs, SlugNormalize.
 type PathTransformer func(relPath string) string
 ```
 
-### Processing model
+### The pipeline carries content AND metadata together
 
-The only required step is `Render`. Everything before it is user code:
+Each pipeline step receives both:
+- **Content** — typed input value `I`, returns typed output value `O`
+- **Metadata** — `ContentSourceConfig` (a `map[string]any`), mutable in place
 
-```
-[any source]  →  []ContentSourceConfig  →  Render
-```
+A step can do any combination:
 
-Pages can come from anywhere — files, a database, an API, or constructed directly
-with `NewPage`. `LoadContent` is a convenience helper for the common case of loading
-from a directory of files; it is not special and can be skipped entirely.
+| What the step does | Content signature | Metadata |
+|---|---|---|
+| Transform content | `[]byte → []byte` | ignored |
+| Mutate metadata only (pass-through) | `any → any` (returns `in` unchanged) | mutated |
+| Transform content + read metadata | `[]byte → []byte` | read only |
+| Terminal sink | `[]byte → struct{}` | read only |
 
-The typical three-stage pattern:
+The `any → any` pass-through works because `in.(any)` always succeeds in `Step`, so the underlying value (e.g. `[]byte`) is preserved for the next stage's type assertion.
 
-1. **Populate** (`LoadContent` or any source): Build `[]ContentSourceConfig` however
-   makes sense. `LoadContent` walks a directory, parses frontmatter, and applies a
-   `PathTransformer` to determine output paths.
+Examples:
+- `SetOutputFile` — mutates `cfg["OutputFile"]`, returns `in` unchanged (`any → any`)
+- `SetTemplateName` — mutates `cfg["TemplateName"]`, returns `in` unchanged (`any → any`)
+- `markdown.New()` — converts `[]byte` markdown to `[]byte` HTML, ignores `cfg`
+- `minify.New()` — reads `cfg.OutputFile()` for MIME type, transforms `[]byte → []byte`
+- `NewPageRender` — reads `cfg.TemplateName()`, writes `cfg["Content"]`, transforms `[]byte → []byte`
+- `WriteOutput` — reads `cfg.OutputFile()` and `ctx.OutputDir`, writes to disk (`[]byte → struct{}`)
+- `FanOut(name, branches...)` — runs each branch Pipeline with the same input, aggregates errors
 
-2. **Enrich** (user code): Compute cross-page data — filter drafts, build navigation,
-   generate taxonomy pages with `GroupByStrings` + `NewPage`, sort, group.
+### The three phases
 
-3. **Render** (`Render`): Merge `globals` into each page (page frontmatter wins on
-   collision), run body through `pipeline` renderers.
+1. **Load** — `FileWalker(contentDir, rules)` returns a Plugin that walks files,
+   matches each against Rules, calls the MetaLoader once per file, and creates one
+   `Artifact` per matched file (carrying the Rule's Pipeline).
+
+2. **Enrich / expand / contract** — user Plugins operate on `*[]Artifact`:
+   `FilterArtifacts(fn)`, `GroupByStrings` + `NewPage` for taxonomy, sort, build nav.
+
+3. **Materialize** — `Render` merges `ctx.Globals` into each artifact's Meta (page
+   wins on collision), then runs each artifact's own `Pipeline` via `RunPipeline`.
+
+All phases are Plugins. There is no structural boundary between them:
 
 ```go
-loadConf := ssg.LoadConfig{
-    ContentDir:      "content",
-    InputExt:        ".md",
-    PathTransformer: ssg.CleanURLs(".md", ".html"),
-}
-pipeline := []ssg.Renderer{
-    ssg.NewTemplateMacro(fns),
-    ssg.Must(ssg.NewPageRender("layout", fns)),
-    ssg.WriteOutput("public"),
-}
+ctx := &ssg.Context{Globals: map[string]any{"Site": site}, OutputDir: "public"}
 
-pages := []ssg.ContentSourceConfig{}
-ssg.LoadContent(loadConf, &pages)
-pages = ssg.FilterPages(pages, isPublished)
-
-// Taxonomy: build tag pages from loaded content
-byTag := ssg.GroupByStrings(pages, "Tags")
-for tag, tagPages := range byTag {
-    pages = append(pages, ssg.SyntheticPage(
-        "tags/"+slug(tag)+"/index.html", "tag-list.html",
-        map[string]any{"Tag": tag, "Pages": tagPages},
-    ))
+var artifacts []ssg.Artifact
+for _, p := range []ssg.Plugin{
+    ssg.FileWalker("content", rules),
+    mysite.RemoveDrafts,
+    mysite.AddTaxonomy,
+    ssg.Render,
+} {
+    if err := p(ctx, &artifacts); err != nil { log.Fatal(err) }
 }
-
-ssg.Render(pipeline, pages, map[string]any{
-    "Nav":  buildNav(pages),
-    "Site": map[string]any{"BaseURL": "https://example.com"},
-})
 ```
 
-### Pipeline pattern
+### Rule and pipeline example
 
-`MultiRender()` (render.go) chains `Renderer` functions using buffer-swapping — no
-goroutines or channels. Each renderer reads from the previous output and writes to a
-swapped buffer. Avoid introducing goroutines into the rendering path.
+```go
+rules := []ssg.Rule{
+    {
+        Pattern: "**/*.md",
+        Loader:  metayaml.Loader,
+        Pipeline: ssg.NewPipeline("post",
+            ssg.SetOutputFile(ssg.CleanURLs(".md", ".html")), // metadata only
+            ssg.SetTemplateName("post.html"),                  // metadata only
+            markdown.New(),                                    // []byte → []byte
+            ssg.Must(ssg.NewPageRender("layout", fns)),        // []byte → []byte, reads+writes cfg
+            ssg.WriteOutput,                                   // []byte → struct{} (terminal)
+        ),
+    },
+    {Pattern: "**/_*"}, // nil Loader: skip draft files
+}
+```
 
-### Path transformation
+### Pipeline execution helpers
 
-`paths.go` provides built-in `PathTransformer` implementations:
-- `CleanURLs(inputExt, outputExt)` — `foo.md` → `foo/index.html` (default)
-- `UglyURLs(inputExt, outputExt)` — `foo.md` → `foo.html`
-- `SlugNormalize(next)` — lowercases, replaces spaces/underscores with hyphens, then applies next
+```go
+// Run a Pipeline and return the final typed result.
+RunPipeline[T any](ctx *Context, cfg ContentSourceConfig, p Pipeline, input any) (T, error)
+```
 
-`LoadDefaults` sets `CleanURLs(InputExt, ".html")` when `PathTransformer` is nil.
+### Adding a pipeline step
+
+Implement a typed function and wrap it with `Step`:
+
+```go
+// Content-transforming step:
+var MyStep = ssg.Step("my-step", func(ctx *ssg.Context, cfg ssg.ContentSourceConfig, in []byte) ([]byte, error) {
+    // transform in, optionally read cfg
+    return result, nil
+})
+
+// Metadata-only step (pass-through):
+func SetFoo(val string) ssg.Stage {
+    return ssg.Step("set-foo", func(_ *ssg.Context, cfg ssg.ContentSourceConfig, in any) (any, error) {
+        cfg["Foo"] = val
+        return in, nil
+    })
+}
+```
+
+Use `ssg.Must(ssg.NewPageRender("layout", fns))` to inline constructors that return `(Stage, error)`.
+
+### One-to-many outputs
+
+Use `FanOut` inside a pipeline to produce multiple output files from one source.
+Each branch is a full Pipeline; all branches receive the same input:
+
+```go
+Pipeline: ssg.NewPipeline("post",
+    ssg.FanOut("outputs",
+        ssg.NewPipeline("html", ssg.SetOutputFile(ssg.CleanURLs(".md", ".html")), markdown.New(), ssg.WriteOutput),
+        ssg.NewPipeline("txt",  ssg.SetOutputFile(ssg.UglyURLs(".md", ".txt")),  plaintext.New(), ssg.WriteOutput),
+    ),
+),
+```
+
+### Built-in MetaLoaders
+
+- `ssg.Passthrough` — returns raw bytes as body with empty metadata; use for assets
+- `ssg.Skip` — unconditionally skips the file (same as nil Loader, but explicit)
+
+### Synthetic pages
+
+`NewPage(outputFile, templateName, data, pipeline)` creates an Artifact not backed
+by a file. Used for taxonomy indexes, RSS feeds, etc.:
+
+```go
+*artifacts = append(*artifacts, ssg.NewPage(
+    "tags/go/index.html", "tag-list/index.html",
+    map[string]any{"Tag": "go", "Pages": tagMetas},
+    ssg.NewPipeline("tag",
+        ssg.Must(ssg.NewPageRender("layout", fns)),
+        ssg.WriteOutput,
+    ),
+))
+```
 
 ### Taxonomy helpers
 
-`taxonomy.go` provides primitives for generating pages from aggregated metadata:
-- `GroupByString(pages, field)` — group by a single-value string field (e.g. `"Category"`)
-- `GroupByStrings(pages, field)` — group by a multi-value field (e.g. `"Tags"`);
-  handles `[]string`, `[]any`, and bare `string` values
-- `SyntheticPage(outputFile, templateName, data)` — create a page not backed by a file;
-  sets `Content: []byte{}` so `Render` can process it
+`taxonomy.go`:
+- `GroupByString(artifacts, field)` — group by a single string field (e.g. `"Category"`)
+- `GroupByStrings(artifacts, field)` — group by a multi-value field (e.g. `"Tags"`);
+  handles `[]string`, `[]any`, and bare `string`
 
-### Metadata formats
+### Filtering
 
-Splitters (`meta.go`) separate raw file bytes into metadata + body:
-- `MetaSplitYaml`, `MetaSplitJson`, `MetaSplitToml`, `MetaSplitEmail`
+`filter.go`:
+- `FilterArtifacts(fn) Plugin` — returns a Plugin that retains artifacts where `fn` returns true
 
-Parsers convert the metadata bytes into a `ContentSourceConfig`:
-- `MetaParseJson` — used for both JSON and YAML (YAML converts to JSON internally)
-- `meta/email.Parser(transformers...)` — email-style headers with optional type coercion
-- `meta/yaml.Parser()`, `meta/toml.Parser()`
+### ContentSourceConfig
+
+`map[string]any` with typed accessors. The map is the right abstraction: system fields
+are type-safe via accessors, user frontmatter is dynamic, templates access all keys
+uniformly via `{{.Title}}` etc. Storing the `Pipeline` on a separate `Artifact`
+struct keeps the map clean.
+
+Known system keys: `OutputFile`, `TemplateName`, `InputFile`, `SourcePath`, `Content`.
 
 ### Sub-packages
 
-Each is a separate Go module. All are included in `go.work` for local development.
+Each is a separate Go module in `go.work`. Meta sub-modules have **no dependency on
+`github.com/client9/ssg`**. Render sub-modules implement `ssg.DynStage` and do depend on ssg.
 
-**Renderers** (`render/`) — implement `Renderer` and are used as pipeline steps:
+**Pipeline stages** (`render/`) — return `ssg.Stage`:
 - **`render/htmlclean`** — normalizes HTML fragments via `golang.org/x/net/html`
-- **`render/markdown`** — Goldmark-based Markdown→HTML with GFM and auto-heading IDs; use `markdown.New()` or `markdown.NewGoldmark(g)`
-- **`render/minify`** — minifies HTML/CSS/JS/SVG output via `tdewolff/minify`; MIME type derived from `ContentSourceConfig.OutputFile()` extension using a hardcoded map (not `mime.TypeByExtension` — OS databases are unreliable)
+- **`render/markdown`** — Goldmark Markdown→HTML; `markdown.New()` or `markdown.NewGoldmark(g)`
+- **`render/minify`** — minifies HTML/CSS/JS/SVG; MIME type from output file extension
+- **`render/shortcode`** — `$cmd[args]{body}` macro expansion engine
 
-**Metadata parsers** (`meta/`) — implement `MetaParser` for frontmatter:
-- **`meta/email`** — email-style `Key: Value` headers; `email.Parser(transformers...)` returns a `MetaParser`
-- **`meta/yaml`** — YAML frontmatter via `gopkg.in/yaml.v3`
-- **`meta/toml`** — TOML frontmatter via `github.com/BurntSushi/toml`
+**Metadata loaders** (`meta/`) — each exports `var Loader MetaLoader`:
+- **`meta/yaml`** — YAML frontmatter (`---\n...\n---\n`)
+- **`meta/toml`** — TOML frontmatter (`+++\n...\n+++\n`)
+- **`meta/json`** — JSON frontmatter (`{\n...\n}\n`)
+- **`meta/email`** — email-style `Key: Value` headers; `email.NewLoader(transformers...)`
 
 **Template functions** (`tmpl/`):
-- **`tmpl/funcs`** — stdlib-only `template.FuncMap`; `funcs.FuncMap()` returns the full map, `funcs.Merge(maps...)` combines FuncMaps. Functions follow Go stdlib argument order (subject first). See `tmpl/funcs/TODO.md` for planned additions.
-
-**Tools and examples:**
-- **`cmd/swapfrontmatter`** — CLI to convert frontmatter between YAML/JSON/Email formats; flags: `-from`, `-to`, `-write`
-- **`sample/`** — complete working example: JSON frontmatter, HTML content, `text/template` macros, page templates, pretty-print, file output to `public/`
-
-### Adding a renderer
-
-Implement `func(io.Writer, io.Reader, data any) error` and include it in the pipeline
-slice passed to `Render`. The `data` argument is the page's `ContentSourceConfig`. Use
-`ssg.Must(r)` to wrap a renderer constructor that returns `(Renderer, error)`.
+- **`tmpl/stdfuncs`** — stdlib-only `template.FuncMap`; `stdfuncs.FuncMap()`, `stdfuncs.Merge(...)`
 
 ### Template loading
 
-`NewPageRender()` (template.go) recursively discovers `*.html` templates under a layout
-directory, keyed by filename without extension. Templates are executed with the full
-`ContentSourceConfig` as the data context — `{{.Title}}`, `{{.Content}}`, etc.
+`NewPageRender(tdir, fns)` discovers `*.html` templates under a layout directory.
+Template selection uses `cfg.TemplateName()` — directory portion routes to the right
+set, filename selects the template within it.
 
-**Block override constraint:** all templates in the same directory share one template
-set. If two sibling templates both `{{define "main"}}`, Go's template engine errors.
-Each template that overrides a block needs its own subdirectory:
+**Block override constraint:** templates in the same directory share one set. If two
+siblings both `{{define "main"}}`, Go's template engine errors. Each block-overriding
+template needs its own subdirectory:
 
 ```
 layout/

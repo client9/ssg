@@ -45,7 +45,11 @@ func copyFile(src, dest string) (err error) {
 	if err != nil {
 		return err
 	}
-	defer in.Close()
+	defer func() {
+		if cerr := in.Close(); err == nil && cerr != nil {
+			err = cerr
+		}
+	}()
 
 	out, err := os.OpenFile(dest, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0666)
 	if err != nil {

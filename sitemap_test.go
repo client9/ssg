@@ -7,14 +7,22 @@ import (
 	"testing"
 )
 
+func sitemapArtifact(outputFile string) Artifact {
+	meta := ContentSourceConfig{}
+	if outputFile != "" {
+		meta["OutputFile"] = outputFile
+	}
+	return Artifact{Meta: meta}
+}
+
 func TestWriteSitemap_basic(t *testing.T) {
 	dir := t.TempDir()
-	pages := []ContentSourceConfig{
-		{"OutputFile": "index.html"},
-		{"OutputFile": "posts/hello/index.html"},
+	artifacts := []Artifact{
+		sitemapArtifact("index.html"),
+		sitemapArtifact("posts/hello/index.html"),
 	}
 
-	if err := WriteSitemap(dir, "https://example.com", pages); err != nil {
+	if err := WriteSitemap(dir, "https://example.com", artifacts); err != nil {
 		t.Fatalf("WriteSitemap: %v", err)
 	}
 
@@ -29,9 +37,9 @@ func TestWriteSitemap_basic(t *testing.T) {
 
 func TestWriteSitemap_trailingSlashOnBaseURL(t *testing.T) {
 	dir := t.TempDir()
-	pages := []ContentSourceConfig{{"OutputFile": "index.html"}}
+	artifacts := []Artifact{sitemapArtifact("index.html")}
 
-	if err := WriteSitemap(dir, "https://example.com/", pages); err != nil {
+	if err := WriteSitemap(dir, "https://example.com/", artifacts); err != nil {
 		t.Fatalf("WriteSitemap: %v", err)
 	}
 
@@ -46,13 +54,13 @@ func TestWriteSitemap_trailingSlashOnBaseURL(t *testing.T) {
 
 func TestWriteSitemap_skipsEmptyOutputFile(t *testing.T) {
 	dir := t.TempDir()
-	pages := []ContentSourceConfig{
-		{"OutputFile": "index.html"},
-		{}, // no OutputFile
-		{"OutputFile": "about.html"},
+	artifacts := []Artifact{
+		sitemapArtifact("index.html"),
+		sitemapArtifact(""), // no OutputFile
+		sitemapArtifact("about.html"),
 	}
 
-	if err := WriteSitemap(dir, "https://example.com", pages); err != nil {
+	if err := WriteSitemap(dir, "https://example.com", artifacts); err != nil {
 		t.Fatalf("WriteSitemap: %v", err)
 	}
 
@@ -62,7 +70,7 @@ func TestWriteSitemap_skipsEmptyOutputFile(t *testing.T) {
 	}
 }
 
-func TestWriteSitemap_emptyPages(t *testing.T) {
+func TestWriteSitemap_emptyArtifacts(t *testing.T) {
 	dir := t.TempDir()
 
 	if err := WriteSitemap(dir, "https://example.com", nil); err != nil {
@@ -71,18 +79,18 @@ func TestWriteSitemap_emptyPages(t *testing.T) {
 
 	got := readSitemap(t, dir)
 	if !strings.Contains(got, "<urlset") {
-		t.Errorf("expected valid XML even with no pages:\n%s", got)
+		t.Errorf("expected valid XML even with no artifacts:\n%s", got)
 	}
 	if strings.Contains(got, "<url>") {
-		t.Errorf("expected no <url> entries for empty pages:\n%s", got)
+		t.Errorf("expected no <url> entries for empty artifacts:\n%s", got)
 	}
 }
 
 func TestWriteSitemap_validXML(t *testing.T) {
 	dir := t.TempDir()
-	pages := []ContentSourceConfig{{"OutputFile": "index.html"}}
+	artifacts := []Artifact{sitemapArtifact("index.html")}
 
-	if err := WriteSitemap(dir, "https://example.com", pages); err != nil {
+	if err := WriteSitemap(dir, "https://example.com", artifacts); err != nil {
 		t.Fatalf("WriteSitemap: %v", err)
 	}
 

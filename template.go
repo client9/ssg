@@ -1,6 +1,7 @@
 package ssg
 
 import (
+	"bytes"
 	"fmt"
 	"html/template"
 	"io"
@@ -9,14 +10,14 @@ import (
 	"strings"
 )
 
-// NewPageRender loads HTML templates from tdir and returns a Renderer that
+// NewPageRender loads HTML templates from tdir and returns a DynStage that
 // wraps each page's rendered content in the appropriate layout template.
 //
 // Template selection: each page's ContentSourceConfig must contain a
 // "TemplateName" key (e.g. "blog/single.html"). The directory portion routes
 // to the right template set; the filename selects the template within it.
 //
-// Content injection: the Renderer reads the pipeline's current output, stores
+// Content injection: the stage reads the pipeline's current output, stores
 // it as the string value of page["Content"], then executes the named template
 // with the full ContentSourceConfig as its data. Templates access the body via
 // {{.Content}} and other page metadata via {{.Title}}, {{.Date}}, etc.
@@ -46,27 +47,24 @@ import (
 //
 // fns is an optional map of additional template functions made available to
 // all templates. Pass nil for no extra functions.
-func NewPageRender(tdir string, fns template.FuncMap) (Renderer, error) {
+func NewPageRender(tdir string, fns template.FuncMap) (Stage, error) {
 	tmpl, err := templateMap(tdir, fns)
 	if err != nil {
 		return nil, err
 	}
 
-	return func(wr io.Writer, source io.Reader, data any) error {
-		s := data.(ContentSourceConfig)
-
-		src, err := io.ReadAll(source)
-		if err != nil {
-			return err
-		}
-
+	return Step("page-render", func(_ *Context, cfg ContentSourceConfig, in []byte) ([]byte, error) {
 		// Store the rendered body as template.HTML so html/template does not
 		// escape it — the content is already trusted, rendered markup.
 		// All other page metadata (Title, Author, etc.) is auto-escaped.
-		s["Content"] = template.HTML(src) //nolint:gosec
+		cfg["Content"] = template.HTML(in) //nolint:gosec
 
-		return tmpl.ExecuteTemplate(wr, s.TemplateName(), s)
-	}, nil
+		var buf bytes.Buffer
+		if err := tmpl.ExecuteTemplate(&buf, cfg.TemplateName(), cfg); err != nil {
+			return nil, err
+		}
+		return buf.Bytes(), nil
+	}), nil
 }
 
 // templateMap walks the layout directory rooted at root and builds a

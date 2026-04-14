@@ -65,3 +65,32 @@ func SlugNormalize(next PathTransformer) PathTransformer {
 		return next(normalized)
 	}
 }
+
+// SetTemplateName returns a DynStage that sets TemplateName in cfg to name,
+// but only if frontmatter hasn't already set it. Content passes through
+// unchanged, making this a metadata-only pipeline step.
+func SetTemplateName(name string) Stage {
+	return Step("set-template-name", func(_ *Context, cfg ContentSourceConfig, in any) (any, error) {
+		if cfg.TemplateName() == "" {
+			cfg["TemplateName"] = name
+		}
+		return in, nil
+	})
+}
+
+// SetOutputFile returns a DynStage that applies transform to the artifact's
+// SourcePath and stores the result as OutputFile in cfg. Content passes
+// through unchanged, making this a metadata-only pipeline step.
+// If transform returns "" the OutputFile is left unchanged.
+func SetOutputFile(transform PathTransformer) Stage {
+	return Step("set-output-file", func(_ *Context, cfg ContentSourceConfig, in any) (any, error) {
+		relPath := cfg.SourcePath()
+		if relPath == "" {
+			relPath = cfg.InputFile()
+		}
+		if out := transform(relPath); out != "" {
+			cfg["OutputFile"] = out
+		}
+		return in, nil
+	})
+}

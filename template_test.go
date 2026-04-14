@@ -164,23 +164,27 @@ func TestNewPageRender(t *testing.T) {
 		"page.html": `<title>{{.Title}}</title><body>{{.Content}}</body>`,
 	})
 
-	renderer, err := NewPageRender(root, nil)
+	stage, err := NewPageRender(root, nil)
 	if err != nil {
 		t.Fatalf("NewPageRender: %v", err)
 	}
 
-	data := ContentSourceConfig{
+	cfg := ContentSourceConfig{
 		"TemplateName": "page.html",
 		"Title":        "Hello",
 	}
-	body := bytes.NewBufferString("<p>world</p>")
-	var out bytes.Buffer
-	if err := renderer(&out, body, data); err != nil {
-		t.Fatalf("renderer: %v", err)
+	p := Pipeline{
+		name:   "test",
+		stages: []Stage{stage},
+	}
+
+	got, err := RunPipeline[[]byte](nil, cfg, p, []byte("<p>world</p>"))
+	if err != nil {
+		t.Fatalf("EvalStages: %v", err)
 	}
 
 	want := "<title>Hello</title><body><p>world</p></body>"
-	if got := out.String(); got != want {
+	if string(got) != want {
 		t.Errorf("got %q, want %q", got, want)
 	}
 }

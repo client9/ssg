@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"html"
-	"io"
 	"log"
 	"sort"
 	"strings"
@@ -22,14 +21,9 @@ func elink(href string, body string) string {
 		html.EscapeString(body))
 }
 
-func HTMLPretty(wr io.Writer, source io.Reader, data any) error {
-	src, err := io.ReadAll(source)
-	if err != nil {
-		return err
-	}
-	wr.Write(gohtml.FormatBytes(src))
-	return nil
-}
+var HTMLPretty = ssg.Step("html-pretty", func(_ *ssg.Context, _ ssg.ContentSourceConfig, in []byte) ([]byte, error) {
+	return gohtml.FormatBytes(in), nil
+})
 
 // slug converts a tag name to a URL-safe string.
 func slug(s string) string {
@@ -39,22 +33,23 @@ func slug(s string) string {
 	return s
 }
 
-func tmplMacro(funcs template.FuncMap) ssg.Renderer {
+func tmplMacro(funcs template.FuncMap) ssg.Stage {
 	t := template.New("_macro")
 	if funcs != nil {
 		t = t.Funcs(funcs)
 	}
-	return func(wr io.Writer, src io.Reader, data any) error {
-		raw, err := io.ReadAll(src)
+	return ssg.Step("tmpl-macro", func(_ *ssg.Context, _ ssg.ContentSourceConfig, in []byte) ([]byte, error) {
+		var err error
+		t, err = t.Parse(string(in))
 		if err != nil {
-			return err
+			return nil, err
 		}
-		t, err = t.Parse(string(raw))
-		if err != nil {
-			return err
+		var buf strings.Builder
+		if err = t.Execute(&buf, nil); err != nil {
+			return nil, err
 		}
-		return t.Execute(wr, data)
-	}
+		return []byte(buf.String()), nil
+	})
 }
 
 func main() {
@@ -63,72 +58,103 @@ func main() {
 		"elink": elink,
 	}
 
-	loadConf := ssg.LoadConfig{
-		ContentDir: "content",
-		Rules: []ssg.Rule{
-			{
-				Pattern:   "**/*.html",
-				Loader:    metajson.Loader,
-				Template:  "baseof.html",
-				Transform: ssg.CleanURLs(".html", ".html"),
-			},
-		},
+	ctx := &ssg.Context{
+		OutputDir: "public",
+		Logger:    log.Default(),
 	}
 
-	pipeline := []ssg.Renderer{
+	htmlPipeline := ssg.NewPipeline("html",
+		ssg.SetOutputFile(ssg.CleanURLs(".html", ".html")),
+		ssg.SetTemplateName("baseof.html"),
 		tmplMacro(fns),
 		htmlclean.Render,
 		ssg.Must(ssg.NewPageRender("layout", fns)),
 		HTMLPretty,
-		ssg.WriteOutput("public"),
-	}
+		ssg.WriteOutput,
+	)
 
-	pages := []ssg.ContentSourceConfig{}
-	if err := ssg.LoadContent(loadConf, &pages); err != nil {
-		log.Fatalf("load content: %s", err)
-	}
-
-	// Build taxonomy: group content pages by tag.
-	byTag := ssg.GroupByStrings(pages, "Tags")
-
-	// Sort tag names for deterministic output.
-	tagNames := make([]string, 0, len(byTag))
-	for tag := range byTag {
-		tagNames = append(tagNames, tag)
-	}
-	sort.Strings(tagNames)
-
-	// One listing page per tag.
-	for _, tag := range tagNames {
-		pages = append(pages, ssg.NewPage(
-			"tags/"+slug(tag)+"/index.html",
-			"tag-list/index.html",
-			map[string]any{
-				"Title": "Tag: " + tag,
-				"Tag":   tag,
-				"Pages": byTag[tag],
-			},
-		))
-	}
-
-	// Tag index: precompute name+count structs so the template stays simple.
-	tagList := make([]map[string]any, 0, len(tagNames))
-	for _, tag := range tagNames {
-		tagList = append(tagList, map[string]any{
-			"Name":  tag,
-			"Count": len(byTag[tag]),
-		})
-	}
-	pages = append(pages, ssg.NewPage(
-		"tags/index.html",
-		"tag-index/index.html",
-		map[string]any{
-			"Title": "All Tags",
-			"Tags":  tagList,
+	rules := []ssg.Rule{
+		{
+			Pattern:  "**/*.html",
+			Loader:   metajson.Loader,
+			Pipeline: htmlPipeline,
 		},
-	))
+	}
 
-	if err := ssg.Render(pipeline, pages, nil); err != nil {
+	var artifacts []ssg.Artifact
+	plugins := []ssg.Plugin{
+		ssg.FileWalker("content", rules),
+		buildTagPages(fns),
+	}
+	for _, p := range plugins {
+		if err := p(ctx, &artifacts); err != nil {
+			log.Fatalf("plugin: %s", err)
+		}
+	}
+
+	if err := ssg.Render(ctx, &artifacts); err != nil {
 		log.Fatalf("render: %s", err)
 	}
+}
+
+// buildTagPages returns a Plugin that generates tag listing and index pages.
+func buildTagPages(fns template.FuncMap) ssg.Plugin {
+	tagPipeline := ssg.NewPipeline("tag",
+		ssg.Must(ssg.NewPageRender("layout", fns)),
+		HTMLPretty,
+		ssg.WriteOutput,
+	)
+
+	return func(ctx *ssg.Context, artifacts *[]ssg.Artifact) error {
+		byTag := ssg.GroupByStrings(*artifacts, "Tags")
+
+		tagNames := make([]string, 0, len(byTag))
+		for tag := range byTag {
+			tagNames = append(tagNames, tag)
+		}
+		sort.Strings(tagNames)
+
+		// One listing page per tag.
+		for _, tag := range tagNames {
+			*artifacts = append(*artifacts, ssg.NewPage(
+				"tags/"+slug(tag)+"/index.html",
+				"tag-list/index.html",
+				map[string]any{
+					"Title": "Tag: " + tag,
+					"Tag":   tag,
+					"Pages": metaSlice(byTag[tag]),
+				},
+				tagPipeline,
+			))
+		}
+
+		// Tag index.
+		tagList := make([]map[string]any, 0, len(tagNames))
+		for _, tag := range tagNames {
+			tagList = append(tagList, map[string]any{
+				"Name":  tag,
+				"Count": len(byTag[tag]),
+			})
+		}
+		*artifacts = append(*artifacts, ssg.NewPage(
+			"tags/index.html",
+			"tag-index/index.html",
+			map[string]any{
+				"Title": "All Tags",
+				"Tags":  tagList,
+			},
+			tagPipeline,
+		))
+
+		return nil
+	}
+}
+
+// metaSlice extracts the Meta map from each artifact for use in templates.
+func metaSlice(artifacts []ssg.Artifact) []ssg.ContentSourceConfig {
+	out := make([]ssg.ContentSourceConfig, len(artifacts))
+	for i, a := range artifacts {
+		out[i] = a.Meta
+	}
+	return out
 }

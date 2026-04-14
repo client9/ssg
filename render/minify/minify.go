@@ -1,12 +1,12 @@
-// Package minify provides a Renderer that minifies HTML, CSS, JS, SVG, and JSON.
+// Package minify provides a DynStage that minifies HTML, CSS, JS, SVG, and JSON.
 //
 // The MIME type is derived from the page's OutputFile extension, so no
-// per-renderer configuration is required. Unknown extensions pass through
+// per-stage configuration is required. Unknown extensions pass through
 // unchanged.
 package minify
 
 import (
-	"io"
+	"bytes"
 	"path/filepath"
 
 	"github.com/client9/ssg"
@@ -33,10 +33,10 @@ var extMime = map[string]string{
 	".xml":  "application/xml",
 }
 
-// New returns a Renderer that minifies content based on the output file's
+// New returns a DynStage that minifies content based on the output file's
 // extension. Supported extensions: .html, .htm, .css, .js, .mjs, .svg,
 // .json, .xml. Unrecognised extensions are passed through without modification.
-func New() ssg.Renderer {
+func New() ssg.Stage {
 	m := minify.New()
 	m.AddFunc("text/html", html.Minify)
 	m.AddFunc("text/css", css.Minify)
@@ -45,15 +45,17 @@ func New() ssg.Renderer {
 	m.AddFunc("application/json", json.Minify)
 	m.AddFunc("application/xml", xml.Minify)
 
-	return func(wr io.Writer, src io.Reader, data any) error {
-		cs := data.(ssg.ContentSourceConfig)
-		mimeType := mimeFromFile(cs.OutputFile())
+	return ssg.Step("minify", func(_ *ssg.Context, cfg ssg.ContentSourceConfig, in []byte) ([]byte, error) {
+		mimeType := mimeFromFile(cfg.OutputFile())
 		if mimeType == "" {
-			_, err := io.Copy(wr, src)
-			return err
+			return in, nil
 		}
-		return m.Minify(mimeType, wr, src)
-	}
+		var buf bytes.Buffer
+		if err := m.Minify(mimeType, &buf, bytes.NewReader(in)); err != nil {
+			return nil, err
+		}
+		return buf.Bytes(), nil
+	})
 }
 
 // mimeFromFile returns the MIME type for the given filename based on its

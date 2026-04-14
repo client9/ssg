@@ -1,7 +1,6 @@
 package minify
 
 import (
-	"bytes"
 	"testing"
 
 	"github.com/client9/ssg"
@@ -33,12 +32,12 @@ func TestMimeFromFile(t *testing.T) {
 func TestMinifyHTML(t *testing.T) {
 	r := New()
 	in := []byte("  <html>  <body>  <p>  hello  </p>  </body>  </html>  ")
-	out := &bytes.Buffer{}
-	data := ssg.ContentSourceConfig{"OutputFile": "index.html"}
-	if err := r(out, bytes.NewReader(in), data); err != nil {
+	cfg := ssg.ContentSourceConfig{"OutputFile": "index.html"}
+	out, err := r.Run(nil, cfg, in)
+	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	got := out.String()
+	got := out.([]byte)
 	if len(got) >= len(in) {
 		t.Errorf("expected minified output to be shorter; got %q", got)
 	}
@@ -47,12 +46,13 @@ func TestMinifyHTML(t *testing.T) {
 func TestMinifyPassthrough(t *testing.T) {
 	r := New()
 	in := []byte("hello world")
-	out := &bytes.Buffer{}
-	data := ssg.ContentSourceConfig{"OutputFile": "file.unknown"}
-	if err := r(out, bytes.NewReader(in), data); err != nil {
+	cfg := ssg.ContentSourceConfig{"OutputFile": "file.unknown"}
+	out, err := r.Run(nil, cfg, in)
+	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if !bytes.Equal(out.Bytes(), in) {
-		t.Errorf("expected passthrough; got %q", out.String())
+	got := out.([]byte)
+	if string(got) != string(in) {
+		t.Errorf("expected passthrough; got %q", got)
 	}
 }
