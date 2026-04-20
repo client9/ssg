@@ -102,3 +102,15 @@ printf "%v" $val
 {{ range 10 }}{{ . }}{{ end }}
 ```
 outputs 0–9. Use `seq` for non-zero start or step: `{{ range (seq 3 7) }}`.
+
+**String Pad Right**
+```
+{{ printf "%20s" $atr }}
+```
+
+**String Pad Left**
+```
+{{ printf "%-20s" $astr }}
+```
+
+
