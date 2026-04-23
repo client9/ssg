@@ -9,7 +9,6 @@ import (
 	"text/template"
 
 	"github.com/client9/ssg"
-	metajsonyaml "github.com/client9/ssg/meta/jsonyaml"
 	"github.com/client9/ssg/render/htmlclean"
 	"github.com/yosssi/gohtml"
 )
@@ -76,7 +75,7 @@ func main() {
 	rules := []ssg.Rule{
 		{
 			Pattern:  "**/*.html",
-			Loader:   metajsonyaml.Loader,
+			Loader:   ssg.ContentLoader,
 			Pipeline: htmlPipeline,
 		},
 	}

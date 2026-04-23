@@ -1,5 +1,10 @@
 package ssg
 
+import (
+	"encoding/json"
+	"github.com/client9/tojson"
+)
+
 // Rule pairs a doublestar glob pattern with a MetaLoader and a Pipeline.
 // FileWalker tries rules in order; the first pattern that matches the file's
 // relative path wins. Files that match no rule are skipped.
@@ -35,4 +40,19 @@ var Passthrough MetaLoader = func(raw []byte) (map[string]any, []byte, error) {
 //	Rule{Pattern: "**/_*", Loader: ssg.Skip}
 var Skip MetaLoader = func(_ []byte) (map[string]any, []byte, error) {
 	return nil, nil, nil
+}
+
+// ContentLoader is the default loader.  It assumes a text document with "front matter"
+// typically markdown, with YAML meta data between '---' at the begining.
+var ContentLoader MetaLoader = func(in []byte) (map[string]any, []byte, error) {
+	jbytes, body, err := tojson.FromFrontMatter(in)
+	if err != nil {
+		return nil, nil, err
+	}
+	meta := make(map[string]any)
+	err = json.Unmarshal(jbytes, &meta)
+	if err != nil {
+		return nil, nil, err
+	}
+	return meta, body, nil
 }
