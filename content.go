@@ -21,22 +21,24 @@ import (
 // Files matching no rule, or whose rule has a nil Loader, are skipped.
 // Directories prefixed with "." are skipped entirely.
 func FileWalker(contentDir string, rules []Rule) Plugin {
-	if contentDir == "" {
-		contentDir = "content"
-	}
+
 	return func(ctx *Context, artifacts *[]Artifact) error {
 		return filepath.WalkDir(contentDir, func(path string, d fs.DirEntry, err error) error {
 			if err != nil {
 				return fmt.Errorf("FileWalker: walking %q: %v", path, err)
 			}
 			if d.IsDir() {
-				if strings.HasPrefix(d.Name(), ".") {
+				name := d.Name()
+				if name != "." && strings.HasPrefix(d.Name(), ".") {
 					return filepath.SkipDir
 				}
 				return nil
 			}
 
-			relPath := filepath.ToSlash(path[len(contentDir)+1:])
+			relPath := path
+			if contentDir != "." {
+				relPath = filepath.ToSlash(path[len(contentDir)+1:])
+			}
 
 			rule, ok, err := matchRules(rules, relPath)
 			if err != nil {
@@ -60,10 +62,10 @@ func FileWalker(contentDir string, rules []Rule) Plugin {
 			}
 
 			base := ContentSourceConfig(rawMeta)
+
 			base["Content"] = body
 			base["InputFile"] = path
 			base["SourcePath"] = relPath
-
 			a := Artifact{
 				Meta:     ContentSourceConfig(maps.Clone(map[string]any(base))),
 				Pipeline: rule.Pipeline,
