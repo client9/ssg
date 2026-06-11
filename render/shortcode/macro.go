@@ -128,7 +128,7 @@ func (c *Context) Render(input string) string {
 func parseMacro(s string, pos int) (string, []string, string, int, bool) {
 	i := pos + 1 // skip '$'
 
-	// Command name: [a-zA-Z0-9_]+
+	// Command name: [a-zA-Z0-9_-]+
 	start := i
 	for i < len(s) && isIdentChar(s[i]) {
 		i++
@@ -283,7 +283,7 @@ func lineCol(s string, pos int) (line, col int) {
 }
 
 func isIdentChar(b byte) bool {
-	return b == '_' || (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || (b >= '0' && b <= '9')
+	return b == '_' || b == '-' || (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || (b >= '0' && b <= '9')
 }
 
 func isSpace(b byte) bool {
